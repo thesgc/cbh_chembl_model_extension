@@ -60,8 +60,10 @@ class CBHCompoundBatch(models.Model):
 
 
     def validate(self):
+        self.warnings = {}
+        self.errors = {}
         try:
-            self.warnings = {}
+            
             self.set_pains_matches()
             self.standardise()
             self.generate_temp_properties()
