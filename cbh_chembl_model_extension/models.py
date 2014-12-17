@@ -46,6 +46,7 @@ class CBHCompoundBatch(models.Model):
     warnings =  hstore.DictionaryField() 
     properties = {} 
     custom_fields =  hstore.DictionaryField() 
+    errors = {}
 
     class Meta:
         '''In order to use as foreign key we set managed to false and set the migration to create the appropriate table
@@ -59,10 +60,13 @@ class CBHCompoundBatch(models.Model):
 
 
     def validate(self):
-        self.warnings = {}
-        self.set_pains_matches()
-        self.standardise()
-        self.generate_temp_properties()
+        try:
+            self.warnings = {}
+            self.set_pains_matches()
+            self.standardise()
+            self.generate_temp_properties()
+        except:
+            self.errors["invalid_molecule"] = True
 
     def set_pains_matches(self):
 
@@ -70,7 +74,7 @@ class CBHCompoundBatch(models.Model):
 
     def standardise(self):
         warnings = []
-        std(self.ctab,warnings)
+        std(self.ctab,output_rules_applied=warnings, errors=self.errors)
         print warnings
         for x, y in warnings:
             self.warnings[x] = y 
