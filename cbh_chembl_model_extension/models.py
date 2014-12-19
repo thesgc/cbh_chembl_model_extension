@@ -47,6 +47,7 @@ class CBHCompoundBatch(models.Model):
     properties = {} 
     custom_fields =  hstore.DictionaryField() 
     errors = {}
+    objects = hstore.HStoreManager()
 
     class Meta:
         '''In order to use as foreign key we set managed to false and set the migration to create the appropriate table
@@ -77,7 +78,6 @@ class CBHCompoundBatch(models.Model):
     def standardise(self):
         warnings = []
         std(self.ctab,output_rules_applied=warnings, errors=self.errors)
-        print warnings
         for x, y in warnings:
             self.warnings[x] = y 
 
