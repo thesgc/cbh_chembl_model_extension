@@ -31,6 +31,7 @@ from chembl_business_model.models import CompoundRecords
 from chembl_business_model.models import MoleculeHierarchy
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import ChemblIdLookup
+from chembl_business_model.tasks import generateCompoundPropertiesTask
 
 from chembl_business_model.models import Source
 from django.db.models import Avg, Max, Min, Count
@@ -54,7 +55,7 @@ class CBHCompoundBatch(TimeStampedModel):
     editable_by =  hstore.DictionaryField() 
     viewable_by =  hstore.DictionaryField() 
     #related_molregno_id = models.IntegerField(null=True, blank=True, default=None)
-    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None)
+    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
     warnings =  hstore.DictionaryField() 
     properties = {} 
     custom_fields =  hstore.DictionaryField() 
@@ -130,9 +131,10 @@ class CBHCompoundBatch(TimeStampedModel):
         inchi_key = Chem.inchi.InchiToInchiKey(inchi)
         try:
             structure = CompoundStructures.objects.get(standard_inchi_key=inchi_key)
+            self.related_molregno_id = structure.molecule.molregno
+            self.save()
         except ObjectDoesNotExist:
             uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=generate_uox_id(), entity_type="COMPOUND")
-
             moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup)[0]
             uox_id_lookup.entity_id = moldict.molregno
             uox_id_lookup.save()
@@ -140,4 +142,5 @@ class CBHCompoundBatch(TimeStampedModel):
             structure.save()
             self.related_molregno = moldict
             self.save()
+        generateCompoundPropertiesTask(structure)
 

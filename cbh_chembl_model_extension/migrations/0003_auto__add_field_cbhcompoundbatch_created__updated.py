@@ -11,13 +11,13 @@ class Migration(SchemaMigration):
 
         # Changing field 'CBHCompoundBatch.related_molregno'
         db.add_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'created', self.gf('django.db.models.fields.DateTimeField')(null=True))
-        db.add_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'updated', self.gf('django.db.models.fields.DateTimeField')(null=True))
+        db.add_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'modified', self.gf('django.db.models.fields.DateTimeField')(null=True))
 
     def backwards(self, orm):
 
         # Changing field 'CBHCompoundBatch.related_molregno'
         db.delete_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'created')
-        db.delete_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'updated')
+        db.delete_column(u'cbh_chembl_model_extension_cbhcompoundbatch', 'modified')
 
     models = {
         u'cbh_chembl_model_extension.cbhcompoundbatch': {
