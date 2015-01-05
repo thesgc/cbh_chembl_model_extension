@@ -36,6 +36,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
+        'django_extensions','shortuuid','django_hstore','south'
     ],
     license="MIT",
     zip_safe=False,

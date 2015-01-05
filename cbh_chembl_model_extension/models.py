@@ -30,19 +30,31 @@ from chembl_business_model.models import CompoundStructures
 from chembl_business_model.models import CompoundRecords
 from chembl_business_model.models import MoleculeHierarchy
 from chembl_business_model.models import MoleculeDictionary
+from chembl_business_model.models import ChemblIdLookup
+
 from chembl_business_model.models import Source
 from django.db.models import Avg, Max, Min, Count
 from django.db.models.fields import NOT_PROVIDED
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django_extensions.db.models import TimeStampedModel
+import shortuuid
 
+def generate_uox_id():
+    uox_id = "%s_%s" % (settings.ID_PREFIX , shortuuid.ShortUUID().random(length=8))
+    try:
+        ChemblIdLookup.objects.get(chembl_id=uox_id)
+        return generate_uox_id()
+    except  ObjectDoesNotExist:
+        return uox_id
 
-
-
-class CBHCompoundBatch(models.Model):
+class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
     ctab = models.TextField(null=True, blank=True, default=None)
+    std_ctab = models.TextField(null=True, blank=True, default=None)
     editable_by =  hstore.DictionaryField() 
     viewable_by =  hstore.DictionaryField() 
-    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=-1)
+    #related_molregno_id = models.IntegerField(null=True, blank=True, default=None)
+    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None)
     warnings =  hstore.DictionaryField() 
     properties = {} 
     custom_fields =  hstore.DictionaryField() 
@@ -57,8 +69,15 @@ class CBHCompoundBatch(models.Model):
         run the migrations
         change the field to a ForeignKey - You now have a south migration for a model that relates to main chembl
         '''
+        #pass
         managed=False
 
+
+    def save(self, *args, **kwargs):
+        self.validate()
+        for key in self.errors:
+            raise ValidationError(key)
+        super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self):
         self.warnings = {}
@@ -77,7 +96,7 @@ class CBHCompoundBatch(models.Model):
 
     def standardise(self):
         warnings = []
-        std(self.ctab,output_rules_applied=warnings, errors=self.errors)
+        self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
         for x, y in warnings:
             self.warnings[x] = y 
 
@@ -103,3 +122,22 @@ class CBHCompoundBatch(models.Model):
             pass # TODO : handle this problem in smarter way
 
         self.properties = prop
+
+
+    def generate_structure_and_dictionary(self):
+        m = Chem.MolFromMolBlock(str(self.std_ctab))
+        inchi = Chem.inchi.MolToInchi(m)
+        inchi_key = Chem.inchi.InchiToInchiKey(inchi)
+        try:
+            structure = CompoundStructures.objects.get(standard_inchi_key=inchi_key)
+        except ObjectDoesNotExist:
+            uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=generate_uox_id(), entity_type="COMPOUND")
+
+            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup)[0]
+            uox_id_lookup.entity_id = moldict.molregno
+            uox_id_lookup.save()
+            structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
+            structure.save()
+            self.related_molregno = moldict
+            self.save()
+
