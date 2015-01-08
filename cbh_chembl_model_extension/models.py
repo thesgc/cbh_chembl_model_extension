@@ -48,6 +48,13 @@ def generate_uox_id():
     except  ObjectDoesNotExist:
         return uox_id
 
+class CBHBatchUpload(TimeStampedModel):
+    '''file field upload for the individual file - one call to this service per file through FlowJS'''
+    uploaded_file = models.FileField(upload_to="batchfiles")
+
+
+
+
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
     ctab = models.TextField(null=True, blank=True, default=None)
