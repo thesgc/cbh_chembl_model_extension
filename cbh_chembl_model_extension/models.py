@@ -48,6 +48,13 @@ def generate_uox_id():
     except  ObjectDoesNotExist:
         return uox_id
 
+class CBHCompoundBatchManager(hstore.HStoreManager):
+    def from_rd_mol(self, rd_mol):
+        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol))
+        batch.validate(temp_props=False)
+        return batch
+
+
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
     ctab = models.TextField(null=True, blank=True, default=None)
@@ -60,7 +67,7 @@ class CBHCompoundBatch(TimeStampedModel):
     properties = {} 
     custom_fields =  hstore.DictionaryField() 
     errors = {}
-    objects = hstore.HStoreManager()
+    objects = CBHCompoundBatchManager()
 
     class Meta:
         '''In order to use as foreign key we set managed to false and set the migration to create the appropriate table
@@ -80,14 +87,15 @@ class CBHCompoundBatch(TimeStampedModel):
             raise ValidationError(key)
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
-    def validate(self):
+    def validate(self, temp_props=True):
         self.warnings = {}
         self.errors = {}
         try:
             
             self.set_pains_matches()
             self.standardise()
-            self.generate_temp_properties()
+            if temp_props:
+                self.generate_temp_properties()
         except:
             self.errors["invalid_molecule"] = True
 
@@ -100,6 +108,7 @@ class CBHCompoundBatch(TimeStampedModel):
         self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
         for x, y in warnings:
             self.warnings[x] = y 
+
 
 
     def generate_temp_properties(self):
