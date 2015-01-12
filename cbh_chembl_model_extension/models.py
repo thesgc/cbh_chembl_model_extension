@@ -8,7 +8,7 @@ from chembl_business_model.models import CompoundStructures
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import Crippen
-from rdkit.Chem.rdmolfiles import MolToMolBlock
+from rdkit.Chem.rdmolfiles import MolToMolBlock, MolFromMolBlock
 from rdkit.Chem import rdMolDescriptors as Descriptors
 from rdkit.Chem.SaltRemover import SaltRemover
 from chembl_business_model.indigoWrapper import indigoObj
@@ -39,6 +39,17 @@ from django.db.models.fields import NOT_PROVIDED
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django_extensions.db.models import TimeStampedModel
 import shortuuid
+from chembl_business_model.utils import inchiFromPipe
+from rdkit.Chem import InchiToInchiKey
+from rdkit.Chem import MolFromInchi
+from rdkit.Chem import Kekulize
+from rdkit.Chem import MolToMolBlock
+from rdkit.Chem import MolFromMolBlock
+from rdkit.Chem.rdmolfiles import MolToSmiles
+from flowjs.models import FlowFile
+from picklefield.fields import PickledObjectField
+
+
 
 def generate_uox_id():
     uox_id = "%s_%s" % (settings.ID_PREFIX , shortuuid.ShortUUID().random(length=8))
@@ -49,24 +60,38 @@ def generate_uox_id():
         return uox_id
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
-    def from_rd_mol(self, rd_mol):
-        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol))
+    def from_rd_mol(self, rd_mol, smiles=""):
+        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol), original_smiles=smiles)
         batch.validate(temp_props=False)
         return batch
+
+
+
+class CBHCompoundMultipleBatch(TimeStampedModel):
+    '''Holds a list of batches'''
+    created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
+    uploaded_data = PickledObjectField()
+    uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
 
 
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
     ctab = models.TextField(null=True, blank=True, default=None)
     std_ctab = models.TextField(null=True, blank=True, default=None)
+    canonical_smiles = models.TextField(null=True, blank=True, default=None)
+    original_smiles = models.TextField(null=True, blank=True, default=None)
     editable_by =  hstore.DictionaryField() 
     viewable_by =  hstore.DictionaryField() 
-    #related_molregno_id = models.IntegerField(null=True, blank=True, default=None)
-    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
+    created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
+    related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
+    #related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
+    standard_inchi = models.TextField(null=True, blank=True, default=None)
+    standard_inchi_key = models.CharField(max_length=50,  null=True, blank=True, default=None)
     warnings =  hstore.DictionaryField() 
-    properties = {} 
+    properties = hstore.DictionaryField() 
     custom_fields =  hstore.DictionaryField() 
-    errors = {}
+    errors = hstore.DictionaryField()
+    multiple_batch = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None)
     objects = CBHCompoundBatchManager()
 
     class Meta:
@@ -78,20 +103,21 @@ class CBHCompoundBatch(TimeStampedModel):
         change the field to a ForeignKey - You now have a south migration for a model that relates to main chembl
         '''
         #pass
-        managed=False
+        #managed=False
 
 
     def save(self, *args, **kwargs):
-        self.validate()
-        for key in self.errors:
-            raise ValidationError(key)
+        val = kwargs.pop("validate", True)
+        if val:
+            self.validate()
+            for key in self.errors:
+                raise ValidationError(key)
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):
         self.warnings = {}
         self.errors = {}
-        try:
-            
+        try:     
             self.set_pains_matches()
             self.standardise()
             if temp_props:
@@ -108,6 +134,15 @@ class CBHCompoundBatch(TimeStampedModel):
         self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
         for x, y in warnings:
             self.warnings[x] = y 
+        self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
+        mol = MolFromInchi(self.standard_inchi)
+        self.canonical_smiles = MolToSmiles(mol)
+        if not self.standard_inchi:
+            self.errors["no_inchi"] = True
+        self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
+        self.std_ctab = MolToMolBlock(mol)
+        self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
+
 
 
 
