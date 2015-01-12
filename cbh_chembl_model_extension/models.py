@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.db import models
+from django.db import models, connection
 from django_hstore import hstore
 from chembl_business_model.models import MoleculeDictionary
 from filter_pains import detect_pains
@@ -65,6 +65,10 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         batch.validate(temp_props=False)
         return batch
 
+    def get_all_keys(self, where=True):
+        cursor = connection.cursor()
+        cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
+        return cursor.fetchall()
 
 
 class CBHCompoundMultipleBatch(TimeStampedModel):
@@ -72,6 +76,10 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
     created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     uploaded_data = PickledObjectField()
     uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
+
+
+
+
 
 
 class CBHCompoundBatch(TimeStampedModel):
@@ -93,6 +101,7 @@ class CBHCompoundBatch(TimeStampedModel):
     errors = hstore.DictionaryField()
     multiple_batch = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None)
     objects = CBHCompoundBatchManager()
+
 
     class Meta:
         '''In order to use as foreign key we set managed to false and set the migration to create the appropriate table
