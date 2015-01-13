@@ -52,7 +52,17 @@ from picklefield.fields import PickledObjectField
 
 
 def generate_uox_id():
-    uox_id = "%s_%s" % (settings.ID_PREFIX , shortuuid.ShortUUID().random(length=8))
+    two_letterg = shortuuid.ShortUUID()
+    two_letterg.set_alphabet("ABCDEFGHJKLMNPQRSTUVWXYZ")
+    two_letter = two_letterg.random(length=2)
+    two_numberg = shortuuid.ShortUUID()
+    two_numberg.set_alphabet("0123456789")
+    two_number = two_numberg.random(length=2)
+    three_letterg = shortuuid.ShortUUID()
+    three_letterg.set_alphabet("ABCDEFGHJKLMNPQRSTUVWXYZ")
+    three_letter = three_letterg.random(length=3)
+
+    uox_id = "%s%s%s%s" % (settings.ID_PREFIX ,two_letter, two_number, three_letter )
     try:
         ChemblIdLookup.objects.get(chembl_id=uox_id)
         return generate_uox_id()
@@ -91,15 +101,15 @@ class CBHCompoundBatch(TimeStampedModel):
     editable_by =  hstore.DictionaryField() 
     viewable_by =  hstore.DictionaryField() 
     created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
-    related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
-    #related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
+    #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
+    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
     standard_inchi = models.TextField(null=True, blank=True, default=None)
     standard_inchi_key = models.CharField(max_length=50,  null=True, blank=True, default=None)
     warnings =  hstore.DictionaryField() 
     properties = hstore.DictionaryField() 
     custom_fields =  hstore.DictionaryField() 
     errors = hstore.DictionaryField()
-    multiple_batch = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None)
+    multiple_batch_id = models.IntegerField(default=0)
     objects = CBHCompoundBatchManager()
 
 
@@ -179,6 +189,7 @@ class CBHCompoundBatch(TimeStampedModel):
 
 
     def generate_structure_and_dictionary(self):
+        print ("generating structure")
         m = Chem.MolFromMolBlock(str(self.std_ctab))
         inchi = Chem.inchi.MolToInchi(m)
         inchi_key = Chem.inchi.InchiToInchiKey(inchi)
