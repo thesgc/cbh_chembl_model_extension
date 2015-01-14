@@ -136,13 +136,12 @@ class CBHCompoundBatch(TimeStampedModel):
     def validate(self, temp_props=True):
         self.warnings = {}
         self.errors = {}
-        try:     
-            self.set_pains_matches()
-            self.standardise()
-            if temp_props:
-                self.generate_temp_properties()
-        except:
-            self.errors["invalid_molecule"] = True
+             
+        self.set_pains_matches()
+        self.standardise()
+        if temp_props:
+            self.generate_temp_properties()
+        
 
     def set_pains_matches(self):
 
@@ -150,10 +149,13 @@ class CBHCompoundBatch(TimeStampedModel):
 
     def standardise(self):
         warnings = []
-        self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
-        for x, y in warnings:
-            self.warnings[x] = y 
+        #testing without standardiser
+        self.std_ctab = self.ctab
+        # self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
+        # for x, y in warnings:
+        #     self.warnings[x] = y 
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
+        print self.standard_inchi
         mol = MolFromInchi(self.standard_inchi)
         self.canonical_smiles = MolToSmiles(mol)
         if not self.standard_inchi:
