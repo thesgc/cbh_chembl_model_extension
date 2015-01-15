@@ -48,7 +48,7 @@ from rdkit.Chem import MolFromMolBlock
 from rdkit.Chem.rdmolfiles import MolToSmiles
 from flowjs.models import FlowFile
 from picklefield.fields import PickledObjectField
-
+import re
 
 
 def generate_uox_id():
@@ -131,6 +131,7 @@ class CBHCompoundBatch(TimeStampedModel):
             self.validate()
             for key in self.errors:
                 raise ValidationError(key)
+        self.get_image_from_pipe()
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):
@@ -165,6 +166,22 @@ class CBHCompoundBatch(TimeStampedModel):
         self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
 
 
+
+
+    def get_image_from_pipe(self):
+        '''Take a structure as a string ctab or string smiles and convert it to an svg
+        format can be one of mol or smi 
+        '''
+        from subprocess import PIPE, Popen
+        structure = self.canonical_smiles
+        path = settings.OPEN_BABEL_EXECUTABLE
+        p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        a = p.communicate(input=str(structure))
+        svg = a[0]
+
+        self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
+            r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
+            svg)
 
 
     def generate_temp_properties(self):
