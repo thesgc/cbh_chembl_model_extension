@@ -49,7 +49,7 @@ from rdkit.Chem.rdmolfiles import MolToSmiles
 from flowjs.models import FlowFile
 from picklefield.fields import PickledObjectField
 import re
-
+from pybel import readstring
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -90,6 +90,27 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
 
 
 
+class Project(TimeStampedModel):
+    ''' Project is a holder for moleculedictionary objects and for batches'''
+    name = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
+    project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
+    created_by = models.ForeignKey("auth.User")
+
+    class Meta:
+        permissions = (
+            ('viewer', 'View or Reference Compounds and Batches'),
+            ('editor', 'Edit Compounds and Batches'),
+            ('admin', 'Edit Compounds and Batches, Change Project Perms'),
+        )
+        get_latest_by = 'created'
+
+    def __unicode__(self):
+        return self.name
+
+    @models.permalink
+    def get_absolute_url(self):
+        return {'post_slug': self.project_key}
+
 
 
 class CBHCompoundBatch(TimeStampedModel):
@@ -127,11 +148,12 @@ class CBHCompoundBatch(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         val = kwargs.pop("validate", True)
-        if val:
-            self.validate()
-            for key in self.errors:
-                raise ValidationError(key)
-        self.get_image_from_pipe()
+
+        self.validate()
+        for key in self.errors:
+            raise ValidationError(key)
+        #self.get_image_from_pipe()
+        print self.properties
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):
@@ -157,54 +179,60 @@ class CBHCompoundBatch(TimeStampedModel):
         #     self.warnings[x] = y 
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
         print self.standard_inchi
-        mol = MolFromInchi(self.standard_inchi)
-        self.canonical_smiles = MolToSmiles(mol)
+        pybelmol = readstring("inchi", self.standard_inchi)
+        #pybel svg because the rdkit version does not support large organometallics
+        self.properties["svg"] = pybelmol.write("svg")
+        print self.properties["svg"]
+        #pybel canonical smiles because the rdkit version does not support large organometallics
+        self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+        #self.canonical_smiles = MolToSmiles(mol, canonical=True)
+        
         if not self.standard_inchi:
             self.errors["no_inchi"] = True
         self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
+        #rdkit molfile for rdkit database cartridge
+        mol = MolFromInchi(self.standard_inchi)
         self.std_ctab = MolToMolBlock(mol)
         self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
 
 
 
 
-    def get_image_from_pipe(self):
-        '''Take a structure as a string ctab or string smiles and convert it to an svg
-        format can be one of mol or smi 
-        '''
-        from subprocess import PIPE, Popen
-        structure = self.canonical_smiles
-        path = settings.OPEN_BABEL_EXECUTABLE
-        p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        a = p.communicate(input=str(structure))
-        svg = a[0]
+    # def get_image_from_pipe(self):
+    #     '''Take a structure as a string ctab or string smiles and convert it to an svg
+    #     format can be one of mol or smi 
+    #     '''
+    #     from subprocess import PIPE, Popen
+    #     structure = self.original_smiles
+    #     path = settings.OPEN_BABEL_EXECUTABLE
+    #     p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    #     a = p.communicate(input=str(structure))
+    #     svg = a[0]
 
-        self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
-            r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
-            svg)
+    #     self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
+    #         r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
+    #         svg)
 
 
     def generate_temp_properties(self):
-        prop = {}
+        
         saltRemover = SaltRemover()
         mol = Chem.MolFromMolBlock(self.ctab)
         base = saltRemover.StripMol(mol)
-        prop["hbd"] = Descriptors.CalcNumHBD(mol)
-        prop["hba"] = Descriptors.CalcNumHBA(mol)
-        prop["rtb"] = Descriptors.CalcNumRotatableBonds(mol)
-        prop["alogp"] = Crippen.MolLogP(mol)
-        prop["psa"] = Descriptors.CalcTPSA(mol)
-        prop["full_mwt"] = Descriptors.CalcExactMolWt(mol)
+        self.properties["hbd"] = Descriptors.CalcNumHBD(mol)
+        self.properties["hba"] = Descriptors.CalcNumHBA(mol)
+        self.properties["rtb"] = Descriptors.CalcNumRotatableBonds(mol)
+        self.properties["alogp"] = Crippen.MolLogP(mol)
+        self.properties["psa"] = Descriptors.CalcTPSA(mol)
+        self.properties["full_mwt"] = Descriptors.CalcExactMolWt(mol)
         if base.GetNumAtoms():
-            prop["mw_freebase"] = Descriptors.CalcExactMolWt(base)
+            self.properties["mw_freebase"] = Descriptors.CalcExactMolWt(base)
 
         try:
             mol2 = indigoObj.loadMolecule(str(structure.molfile))
-            prop["full_molformula"] = mol2.grossFormula()
+            self.properties["full_molformula"] = mol2.grossFormula()
         except:
             pass # TODO : handle this problem in smarter way
-
-        self.properties = prop
 
 
     def generate_structure_and_dictionary(self):
