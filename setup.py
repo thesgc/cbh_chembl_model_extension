@@ -36,7 +36,8 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'django_extensions','shortuuid','django_hstore','south', 'django-picklefield', 'xlrd'
+        'django_extensions','shortuuid','django_hstore','south', 'django-picklefield', 'xlrd',     'django-grappelli==2.4.12',
+    'xlsxwriter',
     ],
     license="MIT",
     zip_safe=False,
