@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.db import models, connection
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import Permission, User, Group
+
 from django_hstore import hstore
+
 from chembl_business_model.models import MoleculeDictionary
 from filter_pains import detect_pains
 from standardiser.standardise import apply as std
@@ -89,19 +93,98 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
 
 
 
+PROJECT_PERMISSIONS = (("viewer","Can View"),
+                        ("editor","Can edit or add batches"),
+                        ( "admin", "Can assign permissions"))
 
-class Project(TimeStampedModel):
+class ProjectPermissionManager(models.Manager):
+
+    def sync_all_permissions(self):
+        for perm in self.all():
+            perm.sync_permissions()
+
+    def get_user_permission(self,project_id, user, codename):
+        return user.has_perm("%d.%s" % (project_id, codename) )
+
+
+
+
+class ProjectPermissionMixin(models.Model):
+    '''The aim of this mixin is to create a permission content type and a permission model for a given project
+    It allows for pruning the contnet types once the model is changed
+    '''
+    
+
+    objects = ProjectPermissionManager()
+    
+    def get_project_key(self):
+        return str(self.pk)
+
+    def sync_permissions(self):
+        '''first we delete the existing permissions that are not labelled in the model'''
+        ct , created = ContentType.objects.get_or_create(app_label=self.get_project_key(), model=self, name=self.name)
+        deleteable_permissions = Permission.objects.filter(content_type_id=ct.pk).exclude(codename__in=[perm[0] for perm in PROJECT_PERMISSIONS])
+        deleteable_permissions.delete()
+        for perm in PROJECT_PERMISSIONS:
+            pm = Permission.objects.get_or_create(content_type_id=ct.id,codename=perm[0],name=perm[1])
+
+
+
+    def get_contenttype_for_instance(self):
+        ct = ContentType.objects.get(app_label=self.get_project_key(), model=self)
+        return ct
+
+    def delete_all_instance_permissions(self):
+        '''for the pre delete signal'''
+        deleteable_permissions = Permission.objects.filter(content_type_id=self.get_contenttype_for_instance().id)
+        deleteable_permissions.delete()
+                
+
+    def get_instance_permission_by_codename(self, codename):
+        pm = Permission.objects.get(codename=codename, content_type_id=self.get_contenttype_for_instance().id)
+        return pm
+
+
+    def _add_instance_permissions_to_user_or_group(self, group_or_user, codename):
+        if type(group_or_user) == Group:
+            group_or_user.group_permissions.add(self.get_instance_permission_by_codename(codename))
+        if type(group_or_user) == User:
+            group_or_user.user_permissions.add(self.get_instance_permission_by_codename(codename))
+        group_or_user.save()
+
+    def make_editor(self,group_or_user):
+        self._add_instance_permissions_to_user_or_group(group_or_user, "editor")
+
+
+    def make_viewer(self,group_or_user):
+        self._add_instance_permissions_to_user_or_group(group_or_user, "viewer")
+
+
+    def make_admin(self,group_or_user):
+        self._add_instance_permissions_to_user_or_group(group_or_user, "admin")
+
+
+
+    class Meta:
+       
+        abstract = True
+        
+
+
+
+
+
+
+
+
+
+class Project(TimeStampedModel, ProjectPermissionMixin):
     ''' Project is a holder for moleculedictionary objects and for batches'''
     name = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
 
     class Meta:
-        permissions = (
-            ('viewer', 'View or Reference Compounds and Batches'),
-            ('editor', 'Edit Compounds and Batches'),
-            ('admin', 'Edit Compounds and Batches, Change Project Perms'),
-        )
         get_latest_by = 'created'
 
     def __unicode__(self):
@@ -132,6 +215,7 @@ class CBHCompoundBatch(TimeStampedModel):
     errors = hstore.DictionaryField()
     multiple_batch_id = models.IntegerField(default=0)
     objects = CBHCompoundBatchManager()
+    project = models.ForeignKey(Project, null=True, blank=True, default=None)
 
 
     class Meta:
