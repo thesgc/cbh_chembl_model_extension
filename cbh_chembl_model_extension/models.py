@@ -237,7 +237,6 @@ class CBHCompoundBatch(TimeStampedModel):
         for key in self.errors:
             raise ValidationError(key)
         #self.get_image_from_pipe()
-        print self.properties
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):
@@ -262,11 +261,10 @@ class CBHCompoundBatch(TimeStampedModel):
         # for x, y in warnings:
         #     self.warnings[x] = y 
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
-        print self.standard_inchi
+
         pybelmol = readstring("inchi", self.standard_inchi)
         #pybel svg because the rdkit version does not support large organometallics
         self.properties["svg"] = pybelmol.write("svg")
-        print self.properties["svg"]
         #pybel canonical smiles because the rdkit version does not support large organometallics
         self.canonical_smiles = pybelmol.write("can").split("\t")[0]
         #self.canonical_smiles = MolToSmiles(mol, canonical=True)
