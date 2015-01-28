@@ -55,6 +55,8 @@ from picklefield.fields import PickledObjectField
 import re
 from pybel import readstring
 
+from django.db.models.signals import post_save
+
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
     two_letterg.set_alphabet("ABCDEFGHJKLMNPQRSTUVWXYZ")
@@ -74,8 +76,9 @@ def generate_uox_id():
         return uox_id
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
-    def from_rd_mol(self, rd_mol, smiles=""):
+    def from_rd_mol(self, rd_mol, smiles="", project=None):
         batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol), original_smiles=smiles)
+        batch.project_id = project.id
         batch.validate(temp_props=False)
         return batch
 
@@ -103,10 +106,14 @@ class ProjectPermissionManager(models.Manager):
         for perm in self.all():
             perm.sync_permissions()
 
-    def get_user_permission(self,project_id, user, codename):
-        return user.has_perm("%d.%s" % (project_id, codename) )
-
-
+    def get_user_permission(self,project_id, user, codenames):
+        '''Check the given users' permissions against a list of codenames for a project id'''
+        perms = user.get_all_permissions()
+        codes = ["%d.%s" % (project_id, codename) for codename in codenames]
+        matched = list(perms.intersection(codes))
+        if len(matched) > 0:
+            return True
+        return False
 
 
 class ProjectPermissionMixin(models.Model):
@@ -147,10 +154,9 @@ class ProjectPermissionMixin(models.Model):
 
     def _add_instance_permissions_to_user_or_group(self, group_or_user, codename):
         if type(group_or_user) == Group:
-            group_or_user.group_permissions.add(self.get_instance_permission_by_codename(codename))
+            group_or_user.permissions.add(self.get_instance_permission_by_codename(codename))
         if type(group_or_user) == User:
             group_or_user.user_permissions.add(self.get_instance_permission_by_codename(codename))
-        group_or_user.save()
 
     def make_editor(self,group_or_user):
         self._add_instance_permissions_to_user_or_group(group_or_user, "editor")
@@ -194,6 +200,15 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     def get_absolute_url(self):
         return {'post_slug': self.project_key}
 
+
+
+def sync_permissions(sender, instance, created, **kwargs):
+    '''After saving the project make sure it has entries in the permissions table'''
+    if created is True:
+        instance.sync_permissions()
+        instance.make_editor(instance.created_by)
+
+post_save.connect(sync_permissions, sender=Project, dispatch_uid="proj_perms")
 
 
 class CBHCompoundBatch(TimeStampedModel):
@@ -328,7 +343,7 @@ class CBHCompoundBatch(TimeStampedModel):
             self.save()
         except ObjectDoesNotExist:
             uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=generate_uox_id(), entity_type="COMPOUND")
-            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup)[0]
+            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, project=self.project)[0]
             uox_id_lookup.entity_id = moldict.molregno
             uox_id_lookup.save()
             structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
