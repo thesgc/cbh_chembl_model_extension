@@ -274,7 +274,10 @@ class CBHCompoundBatch(TimeStampedModel):
         self.std_ctab = self.ctab
         # self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
         # for x, y in warnings:
-        #     self.warnings[x] = y 
+        #     self.warnings[x] = y
+
+        #handle chirality here
+        
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
 
         pybelmol = readstring("inchi", self.standard_inchi)
@@ -291,6 +294,17 @@ class CBHCompoundBatch(TimeStampedModel):
         mol = MolFromInchi(self.standard_inchi)
         self.std_ctab = MolToMolBlock(mol)
         self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
+        
+        structure_type = "MOL"
+        structure_key = self.standard_inchi
+        project_id = self.project_id
+
+        #get a moldict if existent for this molecule
+        #If multiple for the project then select the original one but add a warning with the others
+
+        #If no project ID exists and a public ID exists outside the project then assign this and warn the user
+        #Giving them a choice to add a private version of the substance if they want
+
 
 
 
