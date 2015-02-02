@@ -54,7 +54,7 @@ from flowjs.models import FlowFile
 from picklefield.fields import PickledObjectField
 import re
 from pybel import readstring
-
+import json
 from django.db.models.signals import post_save
 
 def generate_uox_id():
@@ -248,16 +248,13 @@ class CBHCompoundBatch(TimeStampedModel):
     def save(self, *args, **kwargs):
         val = kwargs.pop("validate", True)
 
-        self.validate()
+        # self.validate()
         for key in self.errors:
             raise ValidationError(key)
         #self.get_image_from_pipe()
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
-    def validate(self, temp_props=True):
-        self.warnings = {}
-        self.errors = {}
-             
+    def validate(self, temp_props=True):         
         self.set_pains_matches()
         self.standardise()
         if temp_props:
@@ -347,22 +344,25 @@ class CBHCompoundBatch(TimeStampedModel):
 
 
     def generate_structure_and_dictionary(self):
-        print ("generating structure")
         m = Chem.MolFromMolBlock(str(self.std_ctab))
         inchi = Chem.inchi.MolToInchi(m)
         inchi_key = Chem.inchi.InchiToInchiKey(inchi)
-        try:
-            structure = CompoundStructures.objects.get(standard_inchi_key=inchi_key)
-            self.related_molregno_id = structure.molecule.molregno
-            self.save()
-        except ObjectDoesNotExist:
+        for molecule in json.loads(self.warnings["linkable_molecules"]):
+            if molecule["tobelinked"] == True:
+                print("matched to a molecule from the list")
+                self.related_molregno_id = int(molecule["molregno"])
+                self.save()
+        if not self.related_molregno:
             uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=generate_uox_id(), entity_type="COMPOUND")
-            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, project=self.project)[0]
+            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
+                                                                project=self.project, 
+                                                                structure_type="MOL",
+                                                                structure_key=self.standard_inchi_key)[0]
             uox_id_lookup.entity_id = moldict.molregno
             uox_id_lookup.save()
             structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
             structure.save()
             self.related_molregno = moldict
             self.save()
-        generateCompoundPropertiesTask(structure)
+            generateCompoundPropertiesTask(structure)
 
