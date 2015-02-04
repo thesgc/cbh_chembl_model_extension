@@ -82,9 +82,10 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         batch.validate(temp_props=False)
         return batch
 
-    def get_all_keys(self, where=True):
+    def get_all_keys(self, where=True, secondwhere=True):
         cursor = connection.cursor()
-        cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
+        cursor.execute("SELECT key, count(*) FROM (SELECT (each(custom_fields)).key FROM cbh_chembl_model_extension_cbhcompoundbatch WHERE %s) AS stat WHERE %s GROUP BY key  ORDER BY count DESC, key" % (where,secondwhere))
+        # cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
         return cursor.fetchall()
 
 
@@ -210,6 +211,16 @@ def sync_permissions(sender, instance, created, **kwargs):
 
 post_save.connect(sync_permissions, sender=Project, dispatch_uid="proj_perms")
 
+
+class PinnedCustomField(TimeStampedModel):
+    name = models.CharField(max_length=50)
+    project = models.ForeignKey("cbh_chembl_model_extension.Project")
+    created_by = models.ForeignKey("auth.User")
+    required = models.BooleanField(default=False)
+    part_of_blinded_key = models.BooleanField(default=False)
+
+    class Meta:
+        get_latest_by = 'created'
 
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
