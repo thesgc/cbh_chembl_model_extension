@@ -190,6 +190,7 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     name = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
+    custom_field_config = models.OneToOneField("cbh_chembl_model_extension.CustomFieldConfig", related_name="project")
 
     class Meta:
         get_latest_by = 'created'
@@ -212,12 +213,26 @@ def sync_permissions(sender, instance, created, **kwargs):
 post_save.connect(sync_permissions, sender=Project, dispatch_uid="proj_perms")
 
 
+
+class CustomFieldConfig(TimeStampedModel):
+    name = models.CharField(unique=True, max_length=50)
+    created_by = models.ForeignKey("auth.User")
+    def __unicode__(self):
+        return self.name
+
+
+FIELD_TYPE_CHOICES = (("char", "Short text field"),
+                        ("text", "Full text"),
+                        ("pick", "Choice field"),)
+
 class PinnedCustomField(TimeStampedModel):
     name = models.CharField(max_length=50)
-    project = models.ForeignKey("cbh_chembl_model_extension.Project")
-    created_by = models.ForeignKey("auth.User")
+    custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig")
     required = models.BooleanField(default=False)
     part_of_blinded_key = models.BooleanField(default=False)
+    field_type = models.CharField(default="char", choices=FIELD_TYPE_CHOICES, max_length=4)
+    allowed_values = models.CharField(max_length=1024, blank=True, null=True, default="")
+
 
     class Meta:
         get_latest_by = 'created'
