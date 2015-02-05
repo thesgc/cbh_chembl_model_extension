@@ -277,6 +277,10 @@ class CBHCompoundBatch(TimeStampedModel):
         # self.validate()
         for key in self.errors:
             raise ValidationError(key)
+        if self.multiple_batch_id == 0:
+            mb = CBHCompoundMultipleBatch.objects.create();
+            self.multiple_batch_id = mb.id
+
         #self.get_image_from_pipe()
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
