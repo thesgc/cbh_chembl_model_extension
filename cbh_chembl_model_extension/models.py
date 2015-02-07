@@ -373,7 +373,7 @@ class CBHCompoundBatch(TimeStampedModel):
             pass # TODO : handle this problem in smarter way
 
 
-    def generate_structure_and_dictionary(self):
+    def generate_structure_and_dictionary(self,chirality="1"):
         m = Chem.MolFromMolBlock(str(self.std_ctab))
         inchi = Chem.inchi.MolToInchi(m)
         inchi_key = Chem.inchi.InchiToInchiKey(inchi)
@@ -387,6 +387,7 @@ class CBHCompoundBatch(TimeStampedModel):
             moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
                                                                 project=self.project, 
                                                                 structure_type="MOL",
+                                                                #chirality=chirality,
                                                                 structure_key=self.standard_inchi_key)[0]
             uox_id_lookup.entity_id = moldict.molregno
             uox_id_lookup.save()
