@@ -38,6 +38,8 @@ setup(
     install_requires=[
         'django_extensions','shortuuid','django_hstore','south', 'django-picklefield', 'xlrd',     'django-grappelli==2.4.12',
     'xlsxwriter',
+            'xmltodict',
+
     ],
     license="MIT",
     zip_safe=False,
