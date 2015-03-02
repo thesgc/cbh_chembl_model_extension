@@ -88,6 +88,11 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         # cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
         return cursor.fetchall()
 
+    def index_new_compounds(self):
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO compound_mols (molregno , ctab) SELECT c.molregno, mol_from_ctab(molfile::cstring) ctab FROM compound_structures c LEFT OUTER JOIN compound_mols ON c.molregno = compound_mols.molregno WHERE is_valid_ctab(molfile::cstring) AND compound_mols.molregno is null;")
+        return True
+
 
 class CBHCompoundMultipleBatch(TimeStampedModel):
     '''Holds a list of batches'''
