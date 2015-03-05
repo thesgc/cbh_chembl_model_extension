@@ -388,16 +388,18 @@ class CBHCompoundBatch(TimeStampedModel):
                 self.related_molregno_id = int(molecule["molregno"])
                 self.save()
         if not self.related_molregno:
-            uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=generate_uox_id(), entity_type="COMPOUND")
-            moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
+            moldict, created = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
                                                                 project=self.project, 
                                                                 structure_type="MOL",
                                                                 structure_key=self.standard_inchi_key)[0]
-            uox_id_lookup.entity_id = moldict.molregno
-            uox_id_lookup.save()
-            structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
-            structure.save()
+            if created:
+                uox = generate_uox_id()
+                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox, entity_type="COMPOUND")
+                uox_id_lookup.entity_id = moldict.molregno
+                uox_id_lookup.save()
+                structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
+                structure.save()
+                generateCompoundPropertiesTask(structure)
             self.related_molregno = moldict
             self.save()
-            generateCompoundPropertiesTask(structure)
 
