@@ -382,6 +382,7 @@ class CBHCompoundBatch(TimeStampedModel):
 
     def generate_structure_and_dictionary(self,chirality="1"):
         inchi_key = self.standard_inchi_key
+        inchi = self.standard_inchi
         for molecule in json.loads(self.warnings["linkable_molecules"]):
             if molecule["tobelinked"] == True:
                 print("matched to a molecule from the list")
