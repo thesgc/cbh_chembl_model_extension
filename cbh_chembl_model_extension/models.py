@@ -393,13 +393,13 @@ class CBHCompoundBatch(TimeStampedModel):
                 raise NotImplementedError()
                 #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
             else:
-                
-                moldict = MoleculeDictionary.objects.get_or_create(chembl_id=uox_id, 
+                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND")
+
+                moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
                                                                     project=self.project, 
                                                                     structure_type="MOL",
                                                                     #chirality=chirality,
                                                                     structure_key=self.standard_inchi_key)[0]
-                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id_lookup, entity_type="COMPOUND")
                 uox_id_lookup.entity_id = moldict.molregno
                 uox_id_lookup.save()
                 structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
