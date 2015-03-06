@@ -275,6 +275,8 @@ class CBHCompoundBatch(TimeStampedModel):
         #pass
         #managed=False
 
+    def get_uk(self,):
+        return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
 
     def save(self, *args, **kwargs):
         val = kwargs.pop("validate", True)
@@ -379,23 +381,25 @@ class CBHCompoundBatch(TimeStampedModel):
 
 
     def generate_structure_and_dictionary(self,chirality="1"):
-        m = Chem.MolFromMolBlock(str(self.std_ctab))
-        inchi = Chem.inchi.MolToInchi(m)
-        inchi_key = Chem.inchi.InchiToInchiKey(inchi)
+        inchi_key = self.standard_inchi_key
         for molecule in json.loads(self.warnings["linkable_molecules"]):
             if molecule["tobelinked"] == True:
                 print("matched to a molecule from the list")
                 self.related_molregno_id = int(molecule["molregno"])
                 self.save()
         if not self.related_molregno:
-            moldict, created = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
-                                                                project=self.project, 
-                                                                structure_type="MOL",
-                                                                #chirality=chirality,
-                                                                structure_key=self.standard_inchi_key)[0]
-            if created:
-                uox = generate_uox_id()
-                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox, entity_type="COMPOUND")
+            uox_id = generate_uox_id()
+            if self.properties.get("dupe", None):
+                raise NotImplementedError()
+                #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
+            else:
+                
+                moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id, 
+                                                                    project=self.project, 
+                                                                    structure_type="MOL",
+                                                                    #chirality=chirality,
+                                                                    structure_key=self.standard_inchi_key)[0]
+                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id_lookup, entity_type="COMPOUND")
                 uox_id_lookup.entity_id = moldict.molregno
                 uox_id_lookup.save()
                 structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
