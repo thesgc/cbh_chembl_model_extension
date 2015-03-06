@@ -394,7 +394,7 @@ class CBHCompoundBatch(TimeStampedModel):
                 #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
             else:
                 
-                moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id, 
+                moldict = MoleculeDictionary.objects.get_or_create(chembl_id=uox_id, 
                                                                     project=self.project, 
                                                                     structure_type="MOL",
                                                                     #chirality=chirality,
