@@ -237,9 +237,10 @@ class PinnedCustomField(TimeStampedModel):
     part_of_blinded_key = models.BooleanField(default=False)
     field_type = models.CharField(default="char", choices=FIELD_TYPE_CHOICES, max_length=4)
     allowed_values = models.CharField(max_length=1024, blank=True, null=True, default="")
-
+    #position = models.PositiveSmallIntegerField()
 
     class Meta:
+        #ordering = ['position']
         get_latest_by = 'created'
 
 class CBHCompoundBatch(TimeStampedModel):
