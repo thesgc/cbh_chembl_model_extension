@@ -36,7 +36,6 @@ from chembl_business_model.models import MoleculeHierarchy
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import ChemblIdLookup
 from chembl_business_model.tasks import generateCompoundPropertiesTask
-
 from chembl_business_model.models import Source
 from django.db.models import Avg, Max, Min, Count
 from django.db.models.fields import NOT_PROVIDED
@@ -56,6 +55,8 @@ import re
 from pybel import readstring
 import json
 from django.db.models.signals import post_save
+from base64 import urlsafe_b64encode
+import requests
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -75,8 +76,11 @@ def generate_uox_id():
     except  ObjectDoesNotExist:
         return uox_id
 
+
+
+
 class CBHCompoundBatchManager(hstore.HStoreManager):
-    def from_rd_mol(self, rd_mol, smiles="", project=None):
+    def from_rd_mol(self, rd_mol, smiles="", project=None, redraw="0"):
         batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol), original_smiles=smiles)
         batch.project_id = project.id
         batch.validate(temp_props=False)
@@ -275,6 +279,23 @@ class CBHCompoundBatch(TimeStampedModel):
         '''
         #pass
         #managed=False
+    def get_image_from_pipe(self):
+        '''Take a structure as a string ctab or string smiles and convert it to an svg
+        format can be one of mol or smi 
+        '''
+        #from subprocess import PIPE, Popen
+        #structure = self.canonical_smiles
+        #path = settings.OPEN_BABEL_EXECUTABLE
+        #p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        #a = p.communicate(input=str(structure))
+        #svg = a[0]
+        
+        path = settings.BEAKER_PATH + "ctab2svg" + "/" + urlsafe_b64encode(self.std_ctab) + "/200/" + self.properties["redraw"]
+        data = requests.get(path).content
+
+        self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
+            r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
+            data)
 
     def get_uk(self,):
         return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
@@ -289,7 +310,7 @@ class CBHCompoundBatch(TimeStampedModel):
             mb = CBHCompoundMultipleBatch.objects.create();
             self.multiple_batch_id = mb.id
 
-        #self.get_image_from_pipe()
+        self.get_image_from_pipe()
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):         
@@ -314,10 +335,11 @@ class CBHCompoundBatch(TimeStampedModel):
         #handle chirality here
         
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
+        #print self.standard_inchi
 
         pybelmol = readstring("inchi", self.standard_inchi)
         #pybel svg because the rdkit version does not support large organometallics
-        self.properties["svg"] = pybelmol.write("svg")
+        #self.properties["svg"] = _ctab2svg(self.std_ctab,100,"")
         #pybel canonical smiles because the rdkit version does not support large organometallics
         self.canonical_smiles = pybelmol.write("can").split("\t")[0]
         #self.canonical_smiles = MolToSmiles(mol, canonical=True)
@@ -333,6 +355,7 @@ class CBHCompoundBatch(TimeStampedModel):
         structure_type = "MOL"
         structure_key = self.standard_inchi
         project_id = self.project_id
+
 
         #get a moldict if existent for this molecule
         #If multiple for the project then select the original one but add a warning with the others
