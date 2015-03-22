@@ -290,12 +290,12 @@ class CBHCompoundBatch(TimeStampedModel):
         #a = p.communicate(input=str(structure))
         #svg = a[0]
         
-        path = settings.BEAKER_PATH + "ctab2svg" + "/" + urlsafe_b64encode(self.std_ctab) + "/200/" + self.properties["redraw"]
-        data = requests.get(path).content
+        path = settings.BEAKER_PATH + "ctab2svg" + "/" + urlsafe_b64encode(self.std_ctab) + "/150/" + self.properties.get("redraw", "1")
+        data = requests.get(path)
 
         self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
             r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
-            data)
+            data.content)
 
     def get_uk(self,):
         return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
