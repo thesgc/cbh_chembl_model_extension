@@ -1,43 +1,125 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+import django_extensions.db.fields
+import picklefield.fields
+import django_hstore.fields
+import django.utils.timezone
+from django.conf import settings
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'CBHCompoundBatch'
-        db.execute("create extension if not exists hstore")
-        db.create_table(u'cbh_chembl_model_extension_cbhcompoundbatch', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('ctab', self.gf('django.db.models.fields.TextField')(default=None, null=True, blank=True)),
-            ('editable_by', self.gf(u'django_hstore.fields.DictionaryField')()),
-            ('viewable_by', self.gf(u'django_hstore.fields.DictionaryField')()),
-            ('related_molregno_id', self.gf('django.db.models.fields.IntegerField')()),
-            ('warnings', self.gf(u'django_hstore.fields.DictionaryField')()),
-            ('custom_fields', self.gf(u'django_hstore.fields.DictionaryField')()),
-        ))
-        db.send_create_signal(u'cbh_chembl_model_extension', ['CBHCompoundBatch'])
+    dependencies = [
+        ('flowjs', '__first__'),
+        ('chembl_business_model', '0001_initial'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
 
-
-    def backwards(self, orm):
-        # Deleting model 'CBHCompoundBatch'
-        db.delete_table(u'cbh_chembl_model_extension_cbhcompoundbatch')
-
-
-    models = {
-        u'cbh_chembl_model_extension.cbhcompoundbatch': {
-            'Meta': {'object_name': 'CBHCompoundBatch'},
-            'ctab': ('django.db.models.fields.TextField', [], {'default': 'None', 'null': 'True', 'blank': 'True'}),
-            'custom_fields': (u'django_hstore.fields.DictionaryField', [], {}),
-            'editable_by': (u'django_hstore.fields.DictionaryField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'related_molregno_id': ('django.db.models.fields.IntegerField', [], {}),
-            'warnings': (u'django_hstore.fields.DictionaryField', [], {}),
-            'viewable_by': (u'django_hstore.fields.DictionaryField', [], {})
-        }
-    }
-
-    complete_apps = ['cbh_chembl_model_extension']
+    operations = [
+        migrations.CreateModel(
+            name='CBHCompoundBatch',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('ctab', models.TextField(default=None, null=True, blank=True)),
+                ('std_ctab', models.TextField(default=None, null=True, blank=True)),
+                ('canonical_smiles', models.TextField(default=None, null=True, blank=True)),
+                ('original_smiles', models.TextField(default=None, null=True, blank=True)),
+                ('editable_by', django_hstore.fields.DictionaryField()),
+                ('viewable_by', django_hstore.fields.DictionaryField()),
+                ('created_by', models.CharField(default=None, max_length=50, null=True, db_index=True, blank=True)),
+                ('standard_inchi', models.TextField(default=None, null=True, blank=True)),
+                ('standard_inchi_key', models.CharField(default=None, max_length=50, null=True, blank=True)),
+                ('warnings', django_hstore.fields.DictionaryField()),
+                ('properties', django_hstore.fields.DictionaryField()),
+                ('custom_fields', django_hstore.fields.DictionaryField()),
+                ('errors', django_hstore.fields.DictionaryField()),
+                ('multiple_batch_id', models.IntegerField(default=0)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='CBHCompoundMultipleBatch',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('created_by', models.CharField(default=None, max_length=50, null=True, db_index=True, blank=True)),
+                ('uploaded_data', picklefield.fields.PickledObjectField(editable=False)),
+                ('uploaded_file', models.OneToOneField(null=True, default=None, blank=True, to='flowjs.FlowFile')),
+            ],
+            options={
+                'ordering': ('-modified', '-created'),
+                'abstract': False,
+                'get_latest_by': 'modified',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='CustomFieldConfig',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('name', models.CharField(unique=True, max_length=50)),
+                ('created_by', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ('-modified', '-created'),
+                'abstract': False,
+                'get_latest_by': 'modified',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='PinnedCustomField',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('name', models.CharField(max_length=50)),
+                ('required', models.BooleanField(default=False)),
+                ('part_of_blinded_key', models.BooleanField(default=False)),
+                ('field_type', models.CharField(default=b'char', max_length=4, choices=[(b'char', b'Short text field'), (b'text', b'Full text'), (b'pick', b'Choice field')])),
+                ('allowed_values', models.CharField(default=b'', max_length=1024, null=True, blank=True)),
+                ('custom_field_config', models.ForeignKey(to='cbh_chembl_model_extension.CustomFieldConfig')),
+            ],
+            options={
+                'get_latest_by': 'created',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Project',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('name', models.CharField(default=None, max_length=50, null=True, db_index=True, blank=True)),
+                ('project_key', models.SlugField(null=True, default=None, blank=True, unique=True)),
+                ('created_by', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('custom_field_config', models.OneToOneField(related_name='project', to='cbh_chembl_model_extension.CustomFieldConfig')),
+            ],
+            options={
+                'get_latest_by': 'created',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='cbhcompoundbatch',
+            name='project',
+            field=models.ForeignKey(default=None, blank=True, to='cbh_chembl_model_extension.Project', null=True),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='cbhcompoundbatch',
+            name='related_molregno',
+            field=models.ForeignKey(default=None, blank=True, to='chembl_business_model.MoleculeDictionary', null=True),
+            preserve_default=True,
+        ),
+    ]
