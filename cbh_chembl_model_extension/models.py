@@ -199,7 +199,7 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     name = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
-    custom_field_config = models.OneToOneField("cbh_chembl_model_extension.CustomFieldConfig", related_name="project")
+    custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name="project",null=True, blank=True, default=None, )
 
     class Meta:
         get_latest_by = 'created'
@@ -223,28 +223,81 @@ post_save.connect(sync_permissions, sender=Project, dispatch_uid="proj_perms")
 
 
 
+
+
 class CustomFieldConfig(TimeStampedModel):
     name = models.CharField(unique=True, max_length=50)
     created_by = models.ForeignKey("auth.User")
+    schemaform = models.TextField(default = "")
     def __unicode__(self):
         return self.name
 
+    
 
-FIELD_TYPE_CHOICES = (("char", "Short text field"),
-                        ("text", "Full text"),
-                        ("pick", "Choice field"),)
+
+
+
+
+
+
 
 class PinnedCustomField(TimeStampedModel):
+    TEXT = "text"
+    TEXTAREA = "textarea"
+    UISELECT = "uiselect"
+    INTEGER  = "integer"
+    NUMBER = "number"
+    UISELECTTAG  = "uiselecttag"
+    UISELECTTAGS = "uiselecttags"
+    CHECKBOXES = "checkboxes"
+
+    FIELD_TYPE_CHOICES = {
+                            TEXT : {"name" : "Short text field", "data": { "type": "string" }},
+                            TEXTAREA: {"name" :"Full text", "data": { "type": "string" , "format" : "textarea"}},
+                            UISELECT: {"name" :"Choice field", "data": { "type": "string" , "format" : "uiselect"}},
+                            INTEGER: {"name" :"Integer field", "data": { "type": "integer"}},
+                            NUMBER: {"name" :"Decimal field", "data": { "type": "number"}},
+                            UISELECTTAG: {"name" : "Choice allowing create", "data":  { "type": "array", "format" : "uiselect"}},
+                            UISELECTTAGS: {"name" : "Tags field allowing create" , "data": { "type": "array", "format" : "uiselect", "options": {
+                                      "tagging": "tagFunction" ,
+                                      "taggingLabel": "(adding new)",
+                                      "taggingTokens": "",
+                                 }}},
+                        }
+    #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
+
+
+    field_key = models.CharField(max_length=50,  default="", unique=True)
     name = models.CharField(max_length=50)
+    description = models.CharField(max_length=1024, blank=True, null=True, default="")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig")
     required = models.BooleanField(default=False)
-    part_of_blinded_key = models.BooleanField(default=False)
-    field_type = models.CharField(default="char", choices=FIELD_TYPE_CHOICES, max_length=4)
+    part_of_blinded_key = models.BooleanField(default=False, verbose_name="blind key")
+    field_type = models.CharField(default="char", choices=((name, value["name"]) for name, value in FIELD_TYPE_CHOICES.items()), max_length=15, )
     allowed_values = models.CharField(max_length=1024, blank=True, null=True, default="")
     position = models.PositiveSmallIntegerField()
 
+    def get_fields(self):
+        import copy
+        items = [{"label" : item.strip(), "value": item.strip()} for item in self.allowed_values.split(",")]
+        split_choices = [item.strip() for item in self.allowed_values.split(",")]
+        data =  copy.deepcopy(self.FIELD_TYPE_CHOICES[self.field_type]["data"])
+        data["title"] = self.name
+        # if data["format"] == self.CHECKBOXES:
+        #     data["items"] = items
+        #     data["enum"] = split_choices
+        if data["format"] == self.UISELECT:
+            data["items"] = items
+            if self.field_type in [self.UISELECTTAGS,self.UISELECTTAGS]:
+                data["options"]  = {
+                                      "tagging": True ,
+                                      "taggingLabel": "(adding new)",
+                                      "taggingTokens": ",|ENTER",
+                                   }
+        return (self.field_key, data, self.required)
+
     class Meta:
-        #ordering = ['position']
+        ordering = ['position']
         get_latest_by = 'created'
 
 class CBHCompoundBatch(TimeStampedModel):
