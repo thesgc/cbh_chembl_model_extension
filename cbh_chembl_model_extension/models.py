@@ -48,7 +48,6 @@ from rdkit.Chem import MolFromInchi
 from rdkit.Chem import Kekulize
 from rdkit.Chem import MolToMolBlock
 from rdkit.Chem import MolFromMolBlock
-from rdkit.Chem.rdmolfiles import MolToSmiles
 from flowjs.models import FlowFile
 from picklefield.fields import PickledObjectField
 import re
@@ -396,14 +395,13 @@ class CBHCompoundBatch(TimeStampedModel):
         #self.properties["svg"] = _ctab2svg(self.std_ctab,100,"")
         #pybel canonical smiles because the rdkit version does not support large organometallics
         self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-        #self.canonical_smiles = MolToSmiles(mol, canonical=True)
         
         if not self.standard_inchi:
             self.errors["no_inchi"] = True
         self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
         #rdkit molfile for rdkit database cartridge
         mol = MolFromInchi(self.standard_inchi)
-        self.std_ctab = MolToMolBlock(mol)
+        self.std_ctab = MolToMolBlock(mol, includeStereo=True)
         self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
         
         structure_type = "MOL"
