@@ -430,8 +430,8 @@ class CBHCompoundBatch(TimeStampedModel):
                 raise NotImplementedError()
                 #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
             else:
-                random = random.randint(-2, -1000000000)
-                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=random)
+                rnd = random.randint(-1000000000, -2 )
+                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
 
                 moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
                                                                     project=self.project, 
