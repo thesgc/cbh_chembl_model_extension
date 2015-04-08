@@ -270,7 +270,7 @@ class PinnedCustomField(TimeStampedModel):
     #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
 
 
-    field_key = models.CharField(max_length=50,  default="", unique=True)
+    field_key = models.CharField(max_length=50,  default="")
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=1024, blank=True, null=True, default="")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig")
