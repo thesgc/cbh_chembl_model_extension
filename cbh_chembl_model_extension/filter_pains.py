@@ -1,4 +1,4 @@
-import pybel
+from pybel import readstring, Smarts
 
 def detect_pains(mol, painsfound):
     """
@@ -10,7 +10,7 @@ def detect_pains(mol, painsfound):
     SMARTS codes thanks to:
     http://blog.rguha.net/?p=850
     """
-    mol = pybel.readstring("mdl", str(mol))
+    mol = readstring("mdl", str(mol))
     #SMARTS codes of PAINS
     painsdata = ["[#6]-1(=[#6](-[$([#1]),$([#6](-[#1])-[#1]),$([#6]=[#8])])-[#16]-[#6](-[#7]-1-[$([#1]),$([#6]-[#1]),$([#6]:[#6])])=[#7;!R])-[$([#6](-[#1])-[#1]),$([#6]:[#6])] thiaz_ene_A",
     "n2(-[#6]:1:[!#1]:[#6]:[#6]:[#6]:[#6]:1)c(cc(c2-[#6;X4])-[#1])-[#6;X4] pyrrole_A",
@@ -494,7 +494,7 @@ def detect_pains(mol, painsfound):
     "[#6](-[#1])-[#7](-[#6](-[#1])-[#1])-c:1:c(:c(:c(:c(:c:1-[#1])-[$([#1]),$([#6](-[#1])-[#1])])-[#6](-[#1])-[$([#1]),$([#6]-[#1])])-[#1])-[#1] anil_di_alk_E"]
     painsfound["pains_count"] = 0
     for pain in painsdata:
-        smarts = pybel.Smarts(pain.split(' ')[0])
+        smarts = Smarts(pain.split(' ')[0])
         if smarts.findall(mol):
             painsfound["pains_" + pain.split(' ')[1]] = { "smarts" : pain.split(' ')[0] }  
             painsfound["pains_count"] += 1

@@ -7,7 +7,6 @@ from django_hstore import hstore
 
 from chembl_business_model.models import MoleculeDictionary
 from filter_pains import detect_pains
-from standardiser.standardise import apply as std
 from chembl_business_model.models import CompoundStructures
 from rdkit import Chem
 from rdkit.Chem import Draw
@@ -56,6 +55,7 @@ import json
 from django.db.models.signals import post_save
 from base64 import urlsafe_b64encode
 import requests
+from copy import deepcopy
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -80,7 +80,11 @@ def generate_uox_id():
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
     def from_rd_mol(self, rd_mol, smiles="", project=None, redraw="0"):
-        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(rd_mol), original_smiles=smiles)
+        moldata = deepcopy(rd_mol)
+        for name in moldata.GetPropNames():
+            #delete the property names for the saved ctab
+            moldata.ClearProp(name)
+        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(moldata), original_smiles=smiles)
         batch.project_id = project.id
         batch.validate(temp_props=False)
         return batch
@@ -285,7 +289,7 @@ class PinnedCustomField(TimeStampedModel):
         # if data["format"] == self.CHECKBOXES:
         #     data["items"] = items
         #     data["enum"] = split_choices
-        if data["format"] == self.UISELECT:
+        if data.get("format", False) == self.UISELECT:
             data["items"] = items
             if self.field_type in [self.UISELECTTAGS,self.UISELECTTAGS]:
                 data["options"]  = {
@@ -293,7 +297,7 @@ class PinnedCustomField(TimeStampedModel):
                                       "taggingLabel": "(adding new)",
                                       "taggingTokens": ",|ENTER",
                                    }
-        return (self.field_key, data, self.required)
+        return (self.name, data, self.required)
 
     class Meta:
         ordering = ['position']
@@ -321,34 +325,6 @@ class CBHCompoundBatch(TimeStampedModel):
     project = models.ForeignKey(Project, null=True, blank=True, default=None)
 
 
-    class Meta:
-        '''In order to use as foreign key we set managed to false and set the migration to create the appropriate table
-        The process is as follows - create the column that relates to chembl with _id as an integerfield
-        Generate a set of migrations for that integer field
-        Set managed = False
-        run the migrations
-        change the field to a ForeignKey - You now have a south migration for a model that relates to main chembl
-        '''
-        #pass
-        #managed=False
-    # def get_image_from_pipe(self):
-    #     '''Take a structure as a string ctab or string smiles and convert it to an svg
-    #     format can be one of mol or smi 
-    #     '''
-    #     #from subprocess import PIPE, Popen
-    #     #structure = self.canonical_smiles
-    #     #path = settings.OPEN_BABEL_EXECUTABLE
-    #     #p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    #     #a = p.communicate(input=str(structure))
-    #     #svg = a[0]
-        
-    #     path = settings.BEAKER_PATH + "ctab2svg" + "/" + urlsafe_b64encode(self.std_ctab) + "/150" 
-    #     print path
-    #     data = requests.get(path)
-
-    #     self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
-    #         r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
-    #         data.content)
 
     def get_uk(self,):
         return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
@@ -379,27 +355,17 @@ class CBHCompoundBatch(TimeStampedModel):
 
     def standardise(self):
         warnings = []
-        #testing without standardiser
         self.std_ctab = self.ctab
-        # self.std_ctab = std(self.ctab,output_rules_applied=warnings, errors=self.errors)
-        # for x, y in warnings:
-        #     self.warnings[x] = y
 
-        #handle chirality here
         
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
-        #print self.standard_inchi
 
         pybelmol = readstring("inchi", self.standard_inchi)
-        #pybel svg because the rdkit version does not support large organometallics
-        #self.properties["svg"] = _ctab2svg(self.std_ctab,100,"")
-        #pybel canonical smiles because the rdkit version does not support large organometallics
         self.canonical_smiles = pybelmol.write("can").split("\t")[0]
         
         if not self.standard_inchi:
             self.errors["no_inchi"] = True
         self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
-        #rdkit molfile for rdkit database cartridge
         mol = MolFromInchi(self.standard_inchi)
         self.std_ctab = MolToMolBlock(mol, includeStereo=True)
         self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
@@ -408,12 +374,6 @@ class CBHCompoundBatch(TimeStampedModel):
         structure_key = self.standard_inchi
         project_id = self.project_id
 
-
-        #get a moldict if existent for this molecule
-        #If multiple for the project then select the original one but add a warning with the others
-
-        #If no project ID exists and a public ID exists outside the project then assign this and warn the user
-        #Giving them a choice to add a private version of the substance if they want
 
 
 
