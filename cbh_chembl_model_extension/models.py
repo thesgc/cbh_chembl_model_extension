@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import Permission, User, Group
 
 from django_hstore import hstore
-
+import random
 from chembl_business_model.models import MoleculeDictionary
 from filter_pains import detect_pains
 from chembl_business_model.models import CompoundStructures
@@ -430,7 +430,8 @@ class CBHCompoundBatch(TimeStampedModel):
                 raise NotImplementedError()
                 #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
             else:
-                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=-1)
+                random = random.randint(-2, -1000000000)
+                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=random)
 
                 moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
                                                                     project=self.project, 
