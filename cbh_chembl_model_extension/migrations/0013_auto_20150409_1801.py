@@ -10,7 +10,7 @@ def migrate_unknown_custom_fields(apps, schema_editor):
     Batch = apps.get_model("cbh_chembl_model_extension", "CBHCompoundBatch")
 
     for batch in Batch.objects.all():
-        batch.uncurated_fields = copy.deepcopy(batch.custom_fields)
+        batch.uncurated_fields = deepcopy(batch.custom_fields)
         batch.custom_fields = {}
         batch.save()
        
