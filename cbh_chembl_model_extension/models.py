@@ -310,7 +310,7 @@ class CBHCompoundBatch(TimeStampedModel):
     canonical_smiles = models.TextField(null=True, blank=True, default=None)
     original_smiles = models.TextField(null=True, blank=True, default=None)
     editable_by =  hstore.DictionaryField() 
-    viewable_by =  hstore.DictionaryField() 
+    uncurated_fields =  hstore.DictionaryField() 
     created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
     related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
@@ -360,19 +360,22 @@ class CBHCompoundBatch(TimeStampedModel):
         
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
 
-        pybelmol = readstring("inchi", self.standard_inchi)
-        self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-        
         if not self.standard_inchi:
             self.errors["no_inchi"] = True
-        self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
-        mol = MolFromInchi(self.standard_inchi)
-        self.std_ctab = MolToMolBlock(mol, includeStereo=True)
-        self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
+            print self.ctab
+        else:
+            pybelmol = readstring("inchi", self.standard_inchi)
+            self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+            
+            
+            self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
+            mol = MolFromInchi(self.standard_inchi)
+            self.std_ctab = MolToMolBlock(mol, includeStereo=True)
+            self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
         
-        structure_type = "MOL"
-        structure_key = self.standard_inchi
-        project_id = self.project_id
+            structure_type = "MOL"
+            structure_key = self.standard_inchi
+            project_id = self.project_id
 
 
 
