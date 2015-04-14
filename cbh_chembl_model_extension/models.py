@@ -77,14 +77,23 @@ def generate_uox_id():
 
 
 
+BONDS_WEDGED_SDF_PROP = '''
+>  <_drawingBondsWedged>
+True
+
+$$$$'''
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
-    def from_rd_mol(self, rd_mol, smiles="", project=None, redraw="0"):
+    def from_rd_mol(self, rd_mol, smiles="", project=None, reDraw=None):
         moldata = deepcopy(rd_mol)
         for name in moldata.GetPropNames():
             #delete the property names for the saved ctab
             moldata.ClearProp(name)
-        batch = CBHCompoundBatch(ctab=Chem.MolToMolBlock(moldata), original_smiles=smiles)
+        ctab = Chem.MolToMolBlock(moldata)
+        if reDraw is None:
+            ctab += BONDS_WEDGED_SDF_PROP
+
+        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles)
         batch.project_id = project.id
         batch.validate(temp_props=False)
         return batch
