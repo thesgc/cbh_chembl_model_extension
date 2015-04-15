@@ -56,6 +56,8 @@ from django.db.models.signals import post_save
 from base64 import urlsafe_b64encode
 import requests
 from copy import deepcopy
+from rdkit.Chem import  SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags
+from StringIO import StringIO
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -82,20 +84,35 @@ BONDS_WEDGED_SDF_PROP = '''
 True
 
 $$$$'''
-
 class CBHCompoundBatchManager(hstore.HStoreManager):
     def from_rd_mol(self, rd_mol, smiles="", project=None, reDraw=None):
+        '''Clean up the structures that come in from Smiles or from XLS or SDFs'''
+        #Get a copy of the mol data
         moldata = deepcopy(rd_mol)
         for name in moldata.GetPropNames():
             #delete the property names for the saved ctab
             moldata.ClearProp(name)
-        ctab = Chem.MolToMolBlock(moldata)
-        if reDraw is None:
+        AllChem.AssignAtomChiralTagsFromStructure(moldata,replaceExistingTags=False)
+        try:
+            SanitizeMol(moldata,sanitizeOps=SanitizeFlags.SANITIZE_ALL^SanitizeFlags.SANITIZE_CLEANUPCHIRALITY) #^SanitizeFlags.SANITIZE_SETAROMATICITY^SanitizeFlags.SANITIZE_KEKULIZE^SanitizeFlags.SANITIZE_SETCONJUGATION
+            ctab = Chem.MolToMolBlock(moldata)
             ctab += BONDS_WEDGED_SDF_PROP
-
-        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles)
+            
+            
+        except  ValueError:
+            return None
+        try:
+            SanitizeMol(rd_mol)
+        except ValueError:
+            return None
+        std_ctab = Chem.MolToMolBlock(moldata)
+        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, std_ctab=std_ctab)
         batch.project_id = project.id
-        batch.validate(temp_props=False)
+        try:
+            batch.validate(temp_props=False)
+        except Exception:
+            return None
+
         return batch
 
     def get_all_keys(self, where=True, secondwhere=True):
@@ -363,15 +380,12 @@ class CBHCompoundBatch(TimeStampedModel):
         self.warnings = detect_pains(self.ctab, {})
 
     def standardise(self):
-        warnings = []
-        self.std_ctab = self.ctab
-
+        if not self.std_ctab:
+            self.std_ctab = self.ctab
         
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
-
         if not self.standard_inchi:
-            self.errors["no_inchi"] = True
-            print self.ctab
+            raise Exception
         else:
             pybelmol = readstring("inchi", self.standard_inchi)
             self.canonical_smiles = pybelmol.write("can").split("\t")[0]
@@ -379,32 +393,9 @@ class CBHCompoundBatch(TimeStampedModel):
             
             self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
             mol = MolFromInchi(self.standard_inchi)
-            self.std_ctab = MolToMolBlock(mol, includeStereo=True)
-            self.warnings["hasChanged"] = self.original_smiles != self.canonical_smiles
-        
-            structure_type = "MOL"
-            structure_key = self.standard_inchi
-            project_id = self.project_id
+            if mol:
+                self.std_ctab = MolToMolBlock(mol, includeStereo=True)            
 
-
-
-
-
-
-    # def get_image_from_pipe(self):
-    #     '''Take a structure as a string ctab or string smiles and convert it to an svg
-    #     format can be one of mol or smi 
-    #     '''
-    #     from subprocess import PIPE, Popen
-    #     structure = self.original_smiles
-    #     path = settings.OPEN_BABEL_EXECUTABLE
-    #     p = Popen([path, "-ismi", "-xCe", "-osvg"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    #     a = p.communicate(input=str(structure))
-    #     svg = a[0]
-
-    #     self.properties["svg"] = re.sub(r'width="([0123456789\.]+)"\s+height="([0123456789.]+)"', 
-    #         r'width="100%" viewbox="0 0 \1 \2" preserveAspectRatio="xMinYMin meet" version="1.1"', 
-    #         svg)
 
 
     def generate_temp_properties(self):
@@ -431,7 +422,7 @@ class CBHCompoundBatch(TimeStampedModel):
     def generate_structure_and_dictionary(self,chirality="1"):
         inchi_key = self.standard_inchi_key
         inchi = self.standard_inchi
-        for molecule in json.loads(self.warnings["linkable_molecules"]):
+        for molecule in json.loads(self.warnings.get("linkable_molecules","[]")):
             if molecule["tobelinked"] == True:
                 print("matched to a molecule from the list")
                 self.related_molregno_id = int(molecule["molregno"])
@@ -439,7 +430,9 @@ class CBHCompoundBatch(TimeStampedModel):
         if not self.related_molregno:
             uox_id = generate_uox_id()
             if self.properties.get("dupe", None):
-                raise NotImplementedError()
+                print "dupe to be handled later"
+                moldict = None
+                pass
                 #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
             else:
                 rnd = random.randint(-1000000000, -2 )
