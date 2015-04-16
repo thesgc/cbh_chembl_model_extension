@@ -88,15 +88,12 @@ def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True")
     '''
     cursor = connection.cursor()
     sql = "SELECT DISTINCT {column} -> '{key}' FROM {table} where {column} -> '{key}' != '' and {extra_where};".format( **{"table":table, "key":key, "column": column,  "extra_where": extra_where})
-    print sql
     cursor.execute(sql)
     mytuple = cursor.fetchall()
     items = []
     data = [d[0] for d in mytuple]
-    print data
     for d in data:
         if is_list:
-            print d
             for elem in json.loads(d):
                 items.append(elem)
         else:
@@ -455,7 +452,6 @@ class CBHCompoundBatch(TimeStampedModel):
         inchi = self.standard_inchi
         for molecule in json.loads(self.warnings.get("linkable_molecules","[]")):
             if molecule["tobelinked"] == True:
-                print("matched to a molecule from the list")
                 self.related_molregno_id = int(molecule["molregno"])
                 #self.save()
         if not self.related_molregno_id:
@@ -481,5 +477,5 @@ class CBHCompoundBatch(TimeStampedModel):
                 structure.save()
                 generateCompoundPropertiesTask(structure)
             self.related_molregno = moldict
-            self.save()
+        self.save(validate=False)
 
