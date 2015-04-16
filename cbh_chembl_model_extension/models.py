@@ -2,6 +2,7 @@
 from django.db import models, connection
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import Permission, User, Group
+import copy
 
 from django_hstore import hstore
 import random
@@ -58,6 +59,7 @@ import requests
 from copy import deepcopy
 from rdkit.Chem import  SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags
 from StringIO import StringIO
+from django.template.defaultfilters import slugify
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -79,6 +81,28 @@ def generate_uox_id():
 
 
 
+def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True"):
+    '''Using an hstore query from the reference here
+    http://www.youlikeprogramming.com/2012/06/mastering-the-postgresql-hstore-date-type/
+    where project_id = {{project_id}}
+    '''
+    cursor = connection.cursor()
+    sql = "SELECT DISTINCT {column} -> '{key}' FROM {table} where {column} -> '{key}' != '' and {extra_where};".format( **{"table":table, "key":key, "column": column,  "extra_where": extra_where})
+    print sql
+    cursor.execute(sql)
+    mytuple = cursor.fetchall()
+    items = []
+    data = [d[0] for d in mytuple]
+    print data
+    for d in data:
+        if is_list:
+            print d
+            for elem in json.loads(d):
+                items.append(elem)
+        else:
+            items.append(d)
+    return items
+
 BONDS_WEDGED_SDF_PROP = '''
 >  <_drawingBondsWedged>
 True
@@ -94,7 +118,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             moldata.ClearProp(name)
         AllChem.AssignAtomChiralTagsFromStructure(moldata,replaceExistingTags=False)
         try:
-            SanitizeMol(moldata,sanitizeOps=SanitizeFlags.SANITIZE_ALL^SanitizeFlags.SANITIZE_CLEANUPCHIRALITY) #^SanitizeFlags.SANITIZE_SETAROMATICITY^SanitizeFlags.SANITIZE_KEKULIZE^SanitizeFlags.SANITIZE_SETCONJUGATION
+            SanitizeMol(moldata,sanitizeOps=SanitizeFlags.SANITIZE_ALL^SanitizeFlags.SANITIZE_CLEANUPCHIRALITY^Chem.SanitizeFlags.SANITIZE_SETCONJUGATION^Chem.SanitizeFlags.SANITIZE_SETAROMATICITY) #^SanitizeFlags.SANITIZE_SETAROMATICITY^SanitizeFlags.SANITIZE_KEKULIZE^SanitizeFlags.SANITIZE_SETCONJUGATION
             ctab = Chem.MolToMolBlock(moldata)
             ctab += BONDS_WEDGED_SDF_PROP
             
@@ -120,6 +144,8 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         cursor.execute("SELECT key, count(*) FROM (SELECT (each(custom_fields)).key FROM cbh_chembl_model_extension_cbhcompoundbatch WHERE %s) AS stat WHERE %s GROUP BY key  ORDER BY count DESC, key" % (where,secondwhere))
         # cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
         return cursor.fetchall()
+
+    
 
     def index_new_compounds(self):
         cursor = connection.cursor()
@@ -269,7 +295,6 @@ class CustomFieldConfig(TimeStampedModel):
 
 
 
-
 class PinnedCustomField(TimeStampedModel):
     TEXT = "text"
     TEXTAREA = "textarea"
@@ -279,6 +304,8 @@ class PinnedCustomField(TimeStampedModel):
     UISELECTTAG  = "uiselecttag"
     UISELECTTAGS = "uiselecttags"
     CHECKBOXES = "checkboxes"
+    PERCENTAGE = "percentage"
+    DATE = "date"
 
     FIELD_TYPE_CHOICES = {
                             TEXT : {"name" : "Short text field", "data": { "type": "string" }},
@@ -292,6 +319,9 @@ class PinnedCustomField(TimeStampedModel):
                                       "taggingLabel": "(adding new)",
                                       "taggingTokens": "",
                                  }}},
+                            PERCENTAGE: {"name" :"Percentage field", "data": { "type": "number", "maximum" : 100.0, "minimum": 0.0}},
+                            DATE:  {"name": "Date Field - today or past" , "data":{"type": "string",   "format": "date"}},
+                        
                         }
     #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
 
@@ -299,31 +329,32 @@ class PinnedCustomField(TimeStampedModel):
     field_key = models.CharField(max_length=50,  default="")
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=1024, blank=True, null=True, default="")
-    custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig")
+    custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name='pinned_custom_field')
     required = models.BooleanField(default=False)
     part_of_blinded_key = models.BooleanField(default=False, verbose_name="blind key")
     field_type = models.CharField(default="char", choices=((name, value["name"]) for name, value in FIELD_TYPE_CHOICES.items()), max_length=15, )
     allowed_values = models.CharField(max_length=1024, blank=True, null=True, default="")
     position = models.PositiveSmallIntegerField()
 
-    def get_fields(self):
-        import copy
-        items = [{"label" : item.strip(), "value": item.strip()} for item in self.allowed_values.split(",")]
-        split_choices = [item.strip() for item in self.allowed_values.split(",")]
-        data =  copy.deepcopy(self.FIELD_TYPE_CHOICES[self.field_type]["data"])
-        data["title"] = self.name
-        # if data["format"] == self.CHECKBOXES:
-        #     data["items"] = items
-        #     data["enum"] = split_choices
-        if data.get("format", False) == self.UISELECT:
-            data["items"] = items
-            if self.field_type in [self.UISELECTTAGS,self.UISELECTTAGS]:
-                data["options"]  = {
-                                      "tagging": True ,
-                                      "taggingLabel": "(adding new)",
-                                      "taggingTokens": ",|ENTER",
-                                   }
-        return (self.name, data, self.required)
+    def get_dropdown_list(self, projectKey):
+        is_array = False
+        if self.FIELD_TYPE_CHOICES[self.field_type]["data"]["type"] == "array":
+            is_array=True
+        db_items = get_all_hstore_values("cbh_chembl_model_extension_cbhcompoundbatch  inner join cbh_chembl_model_extension_project on cbh_chembl_model_extension_project.id = cbh_chembl_model_extension_cbhcompoundbatch.project_id ", 
+            "custom_fields", 
+            self.name, 
+            is_list=is_array, 
+            extra_where="cbh_chembl_model_extension_project.project_key ='%s'" % projectKey)
+        return  [item for item in db_items]
+
+    def get_allowed_items(self,projectKey):
+        items = [item.strip() for item in self.allowed_values.split(",") if item.strip()]
+        setitems = list(set(items + self.get_dropdown_list(projectKey)))
+        testdata = [{"label" : item.strip(), "value": item.strip()} for item in setitems if item] 
+        return testdata
+
+
+
 
     class Meta:
         ordering = ['position']
@@ -426,15 +457,16 @@ class CBHCompoundBatch(TimeStampedModel):
             if molecule["tobelinked"] == True:
                 print("matched to a molecule from the list")
                 self.related_molregno_id = int(molecule["molregno"])
-                self.save()
-        if not self.related_molregno:
-            uox_id = generate_uox_id()
-            if self.properties.get("dupe", None):
-                print "dupe to be handled later"
-                moldict = None
-                pass
-                #moldict = MoleculeDictionary.objects.get(chembl_id=uox_id_lookup)
-            else:
+                #self.save()
+        if not self.related_molregno_id:
+            try:
+                moldict = MoleculeDictionary.objects.get(project=self.project, 
+                                                                    structure_type="MOL",
+                                                                    #chirality=chirality,
+                                                                    structure_key=self.standard_inchi_key)
+            except ObjectDoesNotExist:
+
+                uox_id = generate_uox_id()
                 rnd = random.randint(-1000000000, -2 )
                 uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
 
