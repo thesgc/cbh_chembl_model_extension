@@ -100,33 +100,28 @@ def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True")
             items.append(d)
     return items
 
-BONDS_WEDGED_SDF_PROP = '''
+BONDS_WEDGED_SDF_PROP = '''END
 >  <_drawingBondsWedged>
 True
 
 $$$$'''
 class CBHCompoundBatchManager(hstore.HStoreManager):
-    def from_rd_mol(self, rd_mol, smiles="", project=None, reDraw=None):
+    def from_rd_mol(self, rd_mol, orig_ctab=None,smiles="", project=None, reDraw=None):
         '''Clean up the structures that come in from Smiles or from XLS or SDFs'''
         #Get a copy of the mol data
         moldata = deepcopy(rd_mol)
-        for name in moldata.GetPropNames():
-            #delete the property names for the saved ctab
-            moldata.ClearProp(name)
-        AllChem.AssignAtomChiralTagsFromStructure(moldata,replaceExistingTags=False)
-        try:
-            SanitizeMol(moldata,sanitizeOps=SanitizeFlags.SANITIZE_ALL^SanitizeFlags.SANITIZE_CLEANUPCHIRALITY^Chem.SanitizeFlags.SANITIZE_SETCONJUGATION^Chem.SanitizeFlags.SANITIZE_SETAROMATICITY) #^SanitizeFlags.SANITIZE_SETAROMATICITY^SanitizeFlags.SANITIZE_KEKULIZE^SanitizeFlags.SANITIZE_SETCONJUGATION
-            ctab = Chem.MolToMolBlock(moldata)
-            ctab += BONDS_WEDGED_SDF_PROP
-            
-            
-        except  ValueError:
-            return None
-        try:
-            SanitizeMol(rd_mol)
-        except ValueError:
-            return None
         std_ctab = Chem.MolToMolBlock(moldata)
+        if orig_ctab is None:
+            for name in moldata.GetPropNames():
+                #delete the property names for the saved ctab
+                moldata.ClearProp(name)
+            orig_ctab = Chem.MolToMolBlock(moldata)
+        not_first_lists = "\n".join(["",""] + orig_ctab.split("\n")[2:])
+
+
+        print not_first_lists
+        ctab = not_first_lists.split("END")[0]  + BONDS_WEDGED_SDF_PROP
+        
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, std_ctab=std_ctab)
         batch.project_id = project.id
         try:
