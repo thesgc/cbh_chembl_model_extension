@@ -100,8 +100,7 @@ def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True")
             items.append(d)
     return items
 
-BONDS_WEDGED_SDF_PROP = '''END
->  <_drawingBondsWedged>
+BONDS_WEDGED_SDF_PROP = '''>  <_drawingBondsWedged>
 True
 
 $$$$'''
@@ -115,19 +114,35 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             for name in moldata.GetPropNames():
                 #delete the property names for the saved ctab
                 moldata.ClearProp(name)
-            orig_ctab = Chem.MolToMolBlock(moldata)
-        not_first_lists = "\n".join(["",""] + orig_ctab.split("\n")[2:])
+            ctab = Chem.MolToMolBlock(moldata)
+        else:
+            not_first_lists = orig_ctab.split("\n")
+            headerlines = True
+            lines = []
+            reallines =0
+            for line in not_first_lists:
+                if "V2000" in line:
+                    headerlines = False
+                if headerlines:
+                    pass
+                else:
+                    lines.append(line)
+                    reallines += 1
+                if "END" in line:
+                    break
+            if reallines == 2:
+                raise Exception("blank_molfile")
+            all_lines =["","","",] + lines + [BONDS_WEDGED_SDF_PROP,]
 
-
-        print not_first_lists
-        ctab = not_first_lists.split("END")[0]  + BONDS_WEDGED_SDF_PROP
+            ctab = "\n".join(all_lines)
+            print ctab
+            print "++++++++++++++"
         
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, std_ctab=std_ctab)
         batch.project_id = project.id
-        try:
-            batch.validate(temp_props=False)
-        except Exception:
-            return None
+        batch.validate(temp_props=False)
+
+        
 
         return batch
 
@@ -144,12 +159,6 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         cursor.execute("INSERT INTO compound_mols (molregno , ctab) SELECT c.molregno, mol_from_ctab(molfile::cstring) ctab FROM compound_structures c LEFT OUTER JOIN compound_mols ON c.molregno = compound_mols.molregno WHERE is_valid_ctab(molfile::cstring) AND compound_mols.molregno is null;")
         return True
 
-
-class CBHCompoundMultipleBatch(TimeStampedModel):
-    '''Holds a list of batches'''
-    created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
-    uploaded_data = PickledObjectField()
-    uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
 
 
 
@@ -281,6 +290,14 @@ class CustomFieldConfig(TimeStampedModel):
 
     
 
+class CBHCompoundMultipleBatch(TimeStampedModel):
+    '''Holds a list of batches'''
+    created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
+    project = models.ForeignKey(Project, null=True, blank=True, default=None)    
+    uploaded_data = PickledObjectField()
+    uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
+    saved = models.BooleanField(default=False)
+
 
 
 
@@ -392,28 +409,27 @@ class CBHCompoundBatch(TimeStampedModel):
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):         
-        self.set_pains_matches()
+        #self.set_pains_matches()
         self.standardise()
         if temp_props:
             self.generate_temp_properties()
         
 
-    def set_pains_matches(self):
+    # def set_pains_matches(self):
 
-        self.warnings = detect_pains(self.ctab, {})
+    #     self.warnings = detect_pains(self.std_ctab, {})
 
     def standardise(self):
         if not self.std_ctab:
+            print "setting ctab"
             self.std_ctab = self.ctab
         
         self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
         if not self.standard_inchi:
-            raise Exception
+            raise Exception("inchi_error")
         else:
             pybelmol = readstring("inchi", self.standard_inchi)
             self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-            
-            
             self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
             mol = MolFromInchi(self.standard_inchi)
             if mol:
