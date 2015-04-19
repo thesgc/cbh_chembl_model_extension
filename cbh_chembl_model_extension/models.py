@@ -135,8 +135,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             all_lines =["","","",] + lines + [BONDS_WEDGED_SDF_PROP,]
 
             ctab = "\n".join(all_lines)
-            print ctab
-            print "++++++++++++++"
+       
         
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, std_ctab=std_ctab)
         batch.project_id = project.id
