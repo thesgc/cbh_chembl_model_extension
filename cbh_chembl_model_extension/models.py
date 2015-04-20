@@ -355,9 +355,10 @@ class PinnedCustomField(TimeStampedModel):
 
     def get_allowed_items(self,projectKey):
         items = [item.strip() for item in self.allowed_values.split(",") if item.strip()]
-        setitems = list(set(items + self.get_dropdown_list(projectKey)))
+        setitems = sorted(list(set(items + self.get_dropdown_list(projectKey))))
         testdata = [{"label" : item.strip(), "value": item.strip()} for item in setitems if item] 
-        return testdata
+        searchdata = [{"label" : "[%s] %s" % (self.name ,item.strip()), "value" : "%s|%s" % (self.name ,item.strip())} for item in setitems if item] 
+        return (testdata, searchdata)
 
 
 
