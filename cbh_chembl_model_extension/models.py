@@ -409,8 +409,8 @@ class CBHCompoundBatch(TimeStampedModel):
     def validate(self, temp_props=True):         
         #self.set_pains_matches()
         self.standardise()
-        if temp_props:
-            self.generate_temp_properties()
+        # if temp_props:
+        #     self.generate_temp_properties()
         
 
     # def set_pains_matches(self):
@@ -421,7 +421,6 @@ class CBHCompoundBatch(TimeStampedModel):
         if self.canonical_smiles:
             return
         if not self.std_ctab:
-            print "setting ctab"
             self.std_ctab = self.ctab
         if not self.standard_inchi:
             self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
