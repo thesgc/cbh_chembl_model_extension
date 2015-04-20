@@ -115,6 +115,8 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
                 #delete the property names for the saved ctab
                 moldata.ClearProp(name)
             ctab = Chem.MolToMolBlock(moldata)
+            #make it into an sdf block
+            ctab += "\n$$$$"
         else:
             not_first_lists = orig_ctab.split("\n")
             headerlines = True
@@ -136,11 +138,8 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
 
             ctab = "\n".join(all_lines)
        
-        
-        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, std_ctab=std_ctab)
+        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, )
         batch.project_id = project.id
-        batch.validate(temp_props=False)
-
         
 
         return batch
@@ -422,8 +421,8 @@ class CBHCompoundBatch(TimeStampedModel):
         if not self.std_ctab:
             print "setting ctab"
             self.std_ctab = self.ctab
-        
-        self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
+        if not self.standard_inchi:
+            self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
         if not self.standard_inchi:
             raise Exception("inchi_error")
         else:
@@ -433,6 +432,7 @@ class CBHCompoundBatch(TimeStampedModel):
             mol = MolFromInchi(self.standard_inchi)
             if mol:
                 self.std_ctab = MolToMolBlock(mol, includeStereo=True)            
+
 
 
 
