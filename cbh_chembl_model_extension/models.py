@@ -137,7 +137,6 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             all_lines =["","","",] + lines + [BONDS_WEDGED_SDF_PROP,]
 
             ctab = "\n".join(all_lines)
-       
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, )
         batch.project_id = project.id
         
@@ -418,6 +417,8 @@ class CBHCompoundBatch(TimeStampedModel):
     #     self.warnings = detect_pains(self.std_ctab, {})
 
     def standardise(self):
+        if self.canonical_smiles:
+            return
         if not self.std_ctab:
             print "setting ctab"
             self.std_ctab = self.ctab
