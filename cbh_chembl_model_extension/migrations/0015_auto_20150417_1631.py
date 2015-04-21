@@ -4,16 +4,7 @@ from __future__ import unicode_literals
 from django.db import models, migrations
 
 
-def migrate_multiple_batch_data(apps, schema_editor):
-    # We can't import the Person model directly as it may be a newer
-    # version than this migration expects. We use the historical version.
-    Batch = apps.get_model("cbh_chembl_model_extension", "CBHCompoundBatch")
 
-    for batch in Batch.objects.all():
-        if batch.multiple_batch:
-            batch.multiple_batch.created_by = batch.created_by
-            batch.multiple_batch.project = batch.project
-            batch.multiple_batch.save()
 
 
 
