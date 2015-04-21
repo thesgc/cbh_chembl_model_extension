@@ -169,14 +169,18 @@ class ProjectPermissionManager(models.Manager):
         for perm in self.all():
             perm.sync_permissions()
 
-    def get_user_permission(self,project_id, user, codenames):
+    def get_user_permission(self,project_id, user, codenames, perms=None):
         '''Check the given users' permissions against a list of codenames for a project id'''
-        perms = user.get_all_permissions()
+        if not perms:
+            perms = user.get_all_permissions()
         codes = ["%d.%s" % (project_id, codename) for codename in codenames]
         matched = list(perms.intersection(codes))
         if len(matched) > 0:
             return True
         return False
+
+    
+
 
 
 class ProjectPermissionMixin(models.Model):
