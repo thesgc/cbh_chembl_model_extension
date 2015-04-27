@@ -5,6 +5,7 @@ from django.contrib.auth.models import Permission, User, Group
 import copy
 
 from django_hstore import hstore
+
 import random
 from chembl_business_model.models import MoleculeDictionary
 from filter_pains import detect_pains
@@ -60,6 +61,14 @@ from copy import deepcopy
 from rdkit.Chem import  SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags
 from StringIO import StringIO
 from django.template.defaultfilters import slugify
+from cbh_chembl_model_extension.lookups import *
+
+
+hstore.DictionaryField.register_lookup(KeyValuesAny)
+
+hstore.DictionaryField.register_lookup(KeyValuesAll)
+
+
 
 def generate_uox_id():
     two_letterg = shortuuid.ShortUUID()
@@ -370,6 +379,11 @@ class PinnedCustomField(TimeStampedModel):
     class Meta:
         ordering = ['position']
         get_latest_by = 'created'
+
+
+
+
+
 
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
