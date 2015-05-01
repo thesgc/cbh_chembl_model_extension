@@ -117,8 +117,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
     def from_rd_mol(self, rd_mol, orig_ctab=None,smiles="", project=None, reDraw=None):
         '''Clean up the structures that come in from Smiles or from XLS or SDFs'''
         #Get a copy of the mol data
-        moldata = deepcopy(rd_mol)
-        std_ctab = Chem.MolToMolBlock(moldata)
+        moldata = rd_mol
         if orig_ctab is None:
             for name in moldata.GetPropNames():
                 #delete the property names for the saved ctab
@@ -148,8 +147,6 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             ctab = "\n".join(all_lines)
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, )
         batch.project_id = project.id
-        
-
         return batch
 
     def get_all_keys(self, where=True, secondwhere=True):
@@ -445,44 +442,23 @@ class CBHCompoundBatch(TimeStampedModel):
         if not self.standard_inchi:
             raise Exception("inchi_error")
         else:
-            pybelmol = readstring("inchi", self.standard_inchi)
-            self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+            pass
+            
             self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
-            mol = MolFromInchi(self.standard_inchi)
-            if mol:
-                self.std_ctab = MolToMolBlock(mol, includeStereo=True)            
+                        
 
 
 
-
-    def generate_temp_properties(self):
-        
-        saltRemover = SaltRemover()
-        mol = Chem.MolFromMolBlock(self.ctab)
-        base = saltRemover.StripMol(mol)
-        self.properties["hbd"] = Descriptors.CalcNumHBD(mol)
-        self.properties["hba"] = Descriptors.CalcNumHBA(mol)
-        self.properties["rtb"] = Descriptors.CalcNumRotatableBonds(mol)
-        self.properties["alogp"] = Crippen.MolLogP(mol)
-        self.properties["psa"] = Descriptors.CalcTPSA(mol)
-        self.properties["full_mwt"] = Descriptors.CalcExactMolWt(mol)
-        if base.GetNumAtoms():
-            self.properties["mw_freebase"] = Descriptors.CalcExactMolWt(base)
-
-        try:
-            mol2 = indigoObj.loadMolecule(str(structure.molfile))
-            self.properties["full_molformula"] = mol2.grossFormula()
-        except:
-            pass # TODO : handle this problem in smarter way
 
 
     def generate_structure_and_dictionary(self,chirality="1"):
+        pybelmol = readstring("inchi", self.standard_inchi)
+        self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+        mol = MolFromInchi(self.standard_inchi)
+        if mol:
+            self.std_ctab = MolToMolBlock(mol, includeStereo=True)
         inchi_key = self.standard_inchi_key
         inchi = self.standard_inchi
-        for molecule in json.loads(self.warnings.get("linkable_molecules","[]")):
-            if molecule["tobelinked"] == True:
-                self.related_molregno_id = int(molecule["molregno"])
-                #self.save()
         if not self.related_molregno_id:
             try:
                 moldict = MoleculeDictionary.objects.get(project=self.project, 
@@ -504,7 +480,7 @@ class CBHCompoundBatch(TimeStampedModel):
                 uox_id_lookup.save()
                 structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
                 structure.save()
-                generateCompoundPropertiesTask(structure)
+                #generateCompoundPropertiesTask(structure)
             self.related_molregno = moldict
         self.save(validate=False)
 
