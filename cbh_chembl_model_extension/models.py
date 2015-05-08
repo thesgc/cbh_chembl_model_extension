@@ -68,6 +68,30 @@ hstore.DictionaryField.register_lookup(KeyValuesAny)
 
 hstore.DictionaryField.register_lookup(KeyValuesAll)
 
+'''
+Signal code - on a webauthed system, if a user is auto-created by a webauth login,
+notify a superuser.
+'''
+if "django_webauth" in settings.INSTALLED_APPS:
+    from django.db.models.signals import post_save
+    from django.core.mail import send_mail
+
+    def email_new_user(send_to, **kwargs):
+        if kwargs["created"]:  # only for new users
+            admin_user = find_superuser()
+            email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
+            new_user_name = '%s %s' % (send_to.first_name, send_to.last_name)
+            html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin_user.first_name, new_user_name)
+            email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin_user.first_name, new_user_name)
+            send_mail('New Webauth User', email_message, email_from, admin_user.email, fail_silently=False, html_message=html_email)
+
+
+    def find_superuser():
+        return User.objects.all().filter(is_active=True, is_superuser=True)[0]
+
+
+    post_save.connect(email_new_user, send_to=User)
+
 
 
 def generate_uox_id():
