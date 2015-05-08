@@ -291,7 +291,7 @@ post_save.connect(sync_permissions, sender=Project, dispatch_uid="proj_perms")
 class CustomFieldConfig(TimeStampedModel):
     name = models.CharField(unique=True, max_length=50)
     created_by = models.ForeignKey("auth.User")
-    schemaform = models.TextField(default = "")
+    schemaform = models.TextField(default = "", null=True, blank=True, )
     def __unicode__(self):
         return self.name
 
