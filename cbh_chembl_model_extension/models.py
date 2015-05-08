@@ -78,16 +78,17 @@ if "django_webauth" in settings.INSTALLED_APPS:
 
     def email_new_user(send_to, **kwargs):
         if kwargs["created"]:  # only for new users
-            admin_user = find_superuser()
+            admin_users = find_superuser()
             email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
             new_user_name = '%s %s' % (send_to.first_name, send_to.last_name)
-            html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin_user.first_name, new_user_name)
-            email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin_user.first_name, new_user_name)
-            send_mail('New Webauth User', email_message, email_from, admin_user.email, fail_silently=False, html_message=html_email)
+            for admin in admin_users:
+                html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin_user.first_name, new_user_name)
+                email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin.first_name, new_user_name)
+                send_mail('New Webauth User', email_message, email_from, admin.email, fail_silently=False, html_message=html_email)
 
 
     def find_superuser():
-        return User.objects.all().filter(is_active=True, is_superuser=True)[0]
+        return User.objects.all().filter(is_active=True, is_superuser=True).exclude(email=None)
 
 
     post_save.connect(email_new_user, send_to=User)
