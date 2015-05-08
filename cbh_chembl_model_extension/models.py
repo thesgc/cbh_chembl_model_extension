@@ -324,6 +324,8 @@ class PinnedCustomField(TimeStampedModel):
     DATE = "date"
 
     FIELD_TYPE_CHOICES = {
+                            "char" : {"name" : "Short text field", "data": { "type": "string" }},
+
                             TEXT : {"name" : "Short text field", "data": { "type": "string" }},
                             TEXTAREA: {"name" :"Full text", "data": { "type": "string" , "format" : "textarea"}},
                             UISELECT: {"name" :"Choice field", "data": { "type": "string" , "format" : "uiselect"}},
@@ -448,39 +450,37 @@ class CBHCompoundBatch(TimeStampedModel):
                         
 
 
-
-
-
     def generate_structure_and_dictionary(self,chirality="1"):
-        pybelmol = readstring("inchi", self.standard_inchi)
-        self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-        mol = MolFromInchi(self.standard_inchi)
-        if mol:
-            self.std_ctab = MolToMolBlock(mol, includeStereo=True)
-        inchi_key = self.standard_inchi_key
-        inchi = self.standard_inchi
-        if not self.related_molregno_id:
-            try:
-                moldict = MoleculeDictionary.objects.get(project=self.project, 
-                                                                    structure_type="MOL",
-                                                                    #chirality=chirality,
-                                                                    structure_key=self.standard_inchi_key)
-            except ObjectDoesNotExist:
+        if not self.canonical_smiles:
+            pybelmol = readstring("inchi", self.standard_inchi)
+            self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+            mol = MolFromInchi(self.standard_inchi)
+            if mol:
+                self.std_ctab = MolToMolBlock(mol, includeStereo=True)
+            inchi_key = self.standard_inchi_key
+            inchi = self.standard_inchi
+            if not self.related_molregno_id:
+                try:
+                    moldict = MoleculeDictionary.objects.get(project=self.project, 
+                                                                        structure_type="MOL",
+                                                                        #chirality=chirality,
+                                                                        structure_key=self.standard_inchi_key)
+                except ObjectDoesNotExist:
 
-                uox_id = generate_uox_id()
-                rnd = random.randint(-1000000000, -2 )
-                uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
+                    uox_id = generate_uox_id()
+                    rnd = random.randint(-1000000000, -2 )
+                    uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
 
-                moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
-                                                                    project=self.project, 
-                                                                    structure_type="MOL",
-                                                                    #chirality=chirality,
-                                                                    structure_key=self.standard_inchi_key)[0]
-                uox_id_lookup.entity_id = moldict.molregno
-                uox_id_lookup.save()
-                structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
-                structure.save()
-                #generateCompoundPropertiesTask(structure)
-            self.related_molregno = moldict
-        self.save(validate=False)
+                    moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
+                                                                        project=self.project, 
+                                                                        structure_type="MOL",
+                                                                        #chirality=chirality,
+                                                                        structure_key=self.standard_inchi_key)[0]
+                    uox_id_lookup.entity_id = moldict.molregno
+                    uox_id_lookup.save()
+                    structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
+                    structure.save()
+                    #generateCompoundPropertiesTask(structure)
+                self.related_molregno = moldict
+            self.save(validate=False)
 

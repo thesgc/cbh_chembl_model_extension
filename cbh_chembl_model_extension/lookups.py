@@ -10,10 +10,14 @@ from django_hstore.lookups import HStoreLookupMixin, get_cast_for_param
 class KeyValues(HStoreLookupMixin,Contains):
 
     def get_statements(self, compiler, connection):
+        """Looks up inside the hstore field using a string lookup in the format:
+
+            fieldname|value,fieldname2|value2
+        """
         lhs, lhs_params = self.process_lhs(compiler, connection)
         statements = []
         values = []
-        for keyvalue in self.rhs:
+        for keyvalue in self.rhs.split(","):
             splitted = keyvalue.split("|")
             substs = {
                 "field" : lhs,
