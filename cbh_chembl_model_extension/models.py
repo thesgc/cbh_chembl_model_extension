@@ -78,6 +78,7 @@ if "django_webauth" in settings.INSTALLED_APPS:
 
     def email_new_user(send_to, **kwargs):
         if kwargs["created"]:  # only for new users
+            #need to email superusers to inform them a new user has logged in
             admin_users = find_superuser()
             email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
             new_user_name = '%s %s' % (send_to.first_name, send_to.last_name)
@@ -85,6 +86,11 @@ if "django_webauth" in settings.INSTALLED_APPS:
                 html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin_user.first_name, new_user_name)
                 email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin.first_name, new_user_name)
                 send_mail('New Webauth User', email_message, email_from, admin.email, fail_silently=False, html_message=html_email)
+            #we also need to email the user with a welcome message
+            welcome_message = 'Welcome to Chemreg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
+            html_welcome_message = '<p>Welcome to Chemreg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
+            send_mail('Welcome to ChemReg', welcome_message, email_from, send_to.email, fail_silently=False, html_message=html_welcome_message)
+
 
 
     def find_superuser():
