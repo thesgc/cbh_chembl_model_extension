@@ -294,7 +294,8 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name="project",null=True, blank=True, default=None, )
-
+    is_default = models.BooleanField(default=False)
+    
     class Meta:
         get_latest_by = 'created'
 
