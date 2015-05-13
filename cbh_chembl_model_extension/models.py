@@ -515,7 +515,7 @@ class CBHCompoundBatch(TimeStampedModel):
                     uox_id_lookup.save()
                     structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
                     structure.save()
-                    #generateCompoundPropertiesTask(structure)
+                    generateCompoundPropertiesTask(structure)
                 self.related_molregno = moldict
             self.save(validate=False)
 
