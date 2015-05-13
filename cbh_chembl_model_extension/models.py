@@ -134,8 +134,11 @@ def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True")
     data = [d[0] for d in mytuple]
     for d in data:
         if is_list:
-            for elem in json.loads(d):
-                items.append(elem)
+            try:
+                for elem in json.loads(d):
+                    items.append(elem)
+            except ValueError:
+                items.append(d)
         else:
             items.append(d)
     return items
