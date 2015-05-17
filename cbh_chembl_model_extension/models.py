@@ -79,17 +79,18 @@ if "django_webauth" in settings.INSTALLED_APPS:
     def email_new_user(sender, instance, **kwargs):
         if kwargs["created"]:  # only for new users
             #need to email superusers to inform them a new user has logged in
-            admin_users = find_superuser()
-            email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
-            new_user_name = '%s %s' % (instance.first_name, instance.last_name)
-            for admin in admin_users:
-                html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin.first_name, new_user_name)
-                email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin.first_name, new_user_name)
-                send_mail('New Webauth User', email_message, email_from, [admin.email,], fail_silently=False, html_message=html_email)
-            #we also need to email the user with a welcome message
-            welcome_message = 'Welcome to Chemreg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
-            html_welcome_message = '<p>Welcome to Chemreg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
-            send_mail('Welcome to ChemReg', welcome_message, email_from, [instance.email,], fail_silently=False, html_message=html_welcome_message)
+            if instance.email:
+                admin_users = find_superuser()
+                email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
+                new_user_name = '%s %s' % (instance.first_name, instance.last_name)
+                for admin in admin_users:
+                    html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (admin.first_name, new_user_name)
+                    email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin.first_name, new_user_name)
+                    send_mail('New Webauth User', email_message, email_from, [admin.email,], fail_silently=False, html_message=html_email)
+                #we also need to email the user with a welcome message
+                welcome_message = 'Welcome to Chemreg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
+                html_welcome_message = '<p>Welcome to Chemreg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
+                send_mail('Welcome to ChemReg', welcome_message, email_from, [instance.email,], fail_silently=False, html_message=html_welcome_message)
 
 
 
@@ -407,9 +408,6 @@ class PinnedCustomField(TimeStampedModel):
         searchdata = [{"label" : "[%s] %s" % (self.name ,item.strip()), "value" : "%s|%s" % (self.name ,item.strip())} for item in setitems if item] 
         return (testdata, searchdata)
 
-
-
-
     class Meta:
         ordering = ['position']
         get_latest_by = 'created'
@@ -429,7 +427,7 @@ class CBHCompoundBatch(TimeStampedModel):
     uncurated_fields =  hstore.DictionaryField() 
     created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
     #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
-    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno")
+    related_molregno = models.ForeignKey(MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno", )
     standard_inchi = models.TextField(null=True, blank=True, default=None)
     standard_inchi_key = models.CharField(max_length=50,  null=True, blank=True, default=None)
     warnings =  hstore.DictionaryField() 
