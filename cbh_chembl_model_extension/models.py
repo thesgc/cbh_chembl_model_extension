@@ -486,6 +486,7 @@ class CBHCompoundBatch(TimeStampedModel):
     def generate_structure_and_dictionary(self,chirality="1"):
         if not self.canonical_smiles:
             pybelmol = readstring("inchi", self.standard_inchi)
+            self.properties['cdxml'] = pybelmol.write('cdxml')
             self.canonical_smiles = pybelmol.write("can").split("\t")[0]
             mol = MolFromInchi(self.standard_inchi)
             if mol:
