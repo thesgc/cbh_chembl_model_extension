@@ -149,6 +149,12 @@ True
 
 $$$$'''
 class CBHCompoundBatchManager(hstore.HStoreManager):
+    def blinded(self,project=None):
+        '''Generate a batch with a blinded id'''
+      
+        return CBHCompoundBatch(project=project, blinded_batch_id="EMPTY_ID")
+
+
     def from_rd_mol(self, rd_mol, orig_ctab=None,smiles="", project=None, reDraw=None):
         '''Clean up the structures that come in from Smiles or from XLS or SDFs'''
         #Get a copy of the mol data
@@ -437,7 +443,8 @@ class CBHCompoundBatch(TimeStampedModel):
     multiple_batch_id = models.IntegerField(default=0)
     objects = CBHCompoundBatchManager()
     project = models.ForeignKey(Project, null=True, blank=True, default=None)
-
+    blinded_batch_id = models.CharField(default="",null=True, blank=True, max_length=12 )
+    batch_number = models.IntegerField(default=-1,null=True, blank=True,)
 
 
     def get_uk(self,):
@@ -484,37 +491,46 @@ class CBHCompoundBatch(TimeStampedModel):
 
 
     def generate_structure_and_dictionary(self,chirality="1"):
-        if not self.canonical_smiles:
-            pybelmol = readstring("inchi", self.standard_inchi)
-            self.properties['cdxml'] = pybelmol.write('cdxml')
-            self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-            mol = MolFromInchi(self.standard_inchi)
-            if mol:
-                self.std_ctab = MolToMolBlock(mol, includeStereo=True)
-            inchi_key = self.standard_inchi_key
-            inchi = self.standard_inchi
-            if not self.related_molregno_id:
-                try:
-                    moldict = MoleculeDictionary.objects.get(project=self.project, 
-                                                                        structure_type="MOL",
-                                                                        #chirality=chirality,
-                                                                        structure_key=self.standard_inchi_key)
-                except ObjectDoesNotExist:
-
-                    uox_id = generate_uox_id()
-                    rnd = random.randint(-1000000000, -2 )
-                    uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
-
-                    moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
-                                                                        project=self.project, 
-                                                                        structure_type="MOL",
-                                                                        #chirality=chirality,
-                                                                        structure_key=self.standard_inchi_key)[0]
-                    uox_id_lookup.entity_id = moldict.molregno
-                    uox_id_lookup.save()
-                    structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
-                    structure.save()
-                    generateCompoundPropertiesTask(structure)
-                self.related_molregno = moldict
+        if self.blinded_batch_id:
+            
+            uox_id = generate_uox_id()
+            self.blinded_batch_id = uox_id
             self.save(validate=False)
+            uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, 
+                entity_type="DOCUMENT",
+                entity_id=self.id )
+        else:
+            if not self.canonical_smiles :
+                pybelmol = readstring("inchi", self.standard_inchi)
+                self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+                self.properties["cdxml"] = pybelmol.write("cdxml")
 
+                mol = MolFromInchi(self.standard_inchi)
+                if mol:
+                    self.std_ctab = MolToMolBlock(mol, includeStereo=True)
+                inchi_key = self.standard_inchi_key
+                inchi = self.standard_inchi
+                if not self.related_molregno_id:
+                    try:
+                        moldict = MoleculeDictionary.objects.get(project=self.project, 
+                                                                            structure_type="MOL",
+                                                                            #chirality=chirality,
+                                                                            structure_key=self.standard_inchi_key)
+                    except ObjectDoesNotExist:
+
+                        uox_id = generate_uox_id()
+                        rnd = random.randint(-1000000000, -2 )
+                        uox_id_lookup = ChemblIdLookup.objects.create(chembl_id=uox_id, entity_type="COMPOUND", entity_id=rnd)
+
+                        moldict = MoleculeDictionary.objects.get_or_create(chembl=uox_id_lookup, 
+                                                                            project=self.project, 
+                                                                            structure_type="MOL",
+                                                                            #chirality=chirality,
+                                                                            structure_key=self.standard_inchi_key)[0]
+                        uox_id_lookup.entity_id = moldict.molregno
+                        uox_id_lookup.save()
+                        structure = CompoundStructures(molecule=moldict,molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
+                        structure.save()
+                        generateCompoundPropertiesTask(structure)
+                    self.related_molregno = moldict
+                self.save(validate=False)
