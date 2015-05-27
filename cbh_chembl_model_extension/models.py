@@ -346,6 +346,7 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
     uploaded_data = PickledObjectField()
     uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
     saved = models.BooleanField(default=False)
+    #batches = models.ForeignKey(CBHCompoundBatch, null=True, default=None)
 
 
 
@@ -441,6 +442,7 @@ class CBHCompoundBatch(TimeStampedModel):
     custom_fields =  hstore.DictionaryField() 
     errors = hstore.DictionaryField()
     multiple_batch_id = models.IntegerField(default=0)
+    #multiple_batch_id = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None, to_field="id")
     objects = CBHCompoundBatchManager()
     project = models.ForeignKey(Project, null=True, blank=True, default=None)
     blinded_batch_id = models.CharField(default="",null=True, blank=True, max_length=12 )
