@@ -140,6 +140,8 @@ def get_all_hstore_values(table,column, key, is_list=False, extra_where=" True")
                     items.append(elem)
             except ValueError:
                 items.append(d)
+            except TypeError:
+                items.append(d)
         else:
             items.append(d)
     return items
