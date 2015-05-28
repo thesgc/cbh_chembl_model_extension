@@ -373,7 +373,7 @@ class PinnedCustomField(TimeStampedModel):
                             UISELECT: {"name" :"Choice field", "data": { "type": "string" , "format" : "uiselect"}},
                             INTEGER: {"name" :"Integer field", "data": { "type": "integer"}},
                             NUMBER: {"name" :"Decimal field", "data": { "type": "number"}},
-                            UISELECTTAG: {"name" : "Choice allowing create", "data":  { "type": "array", "format" : "uiselect"}},
+                            UISELECTTAG: {"name" : "Choice allowing create", "data":  { "type": "string", "format" : "uiselect"}},
                             UISELECTTAGS: {"name" : "Tags field allowing create" , "data": { "type": "array", "format" : "uiselect", "options": {
                                       "tagging": "tagFunction" ,
                                       "taggingLabel": "(adding new)",
