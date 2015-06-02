@@ -189,7 +189,8 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
 
             ctab = "\n".join(all_lines)
         batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, )
-        batch.project_id = project.id
+        if project:
+            batch.project_id = project.id
         return batch
 
     def get_all_keys(self, where=True, secondwhere=True):
@@ -487,9 +488,7 @@ class CBHCompoundBatch(TimeStampedModel):
             self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
         if not self.standard_inchi:
             raise Exception("inchi_error")
-        else:
-            pass
-            
+        else:            
             self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
                         
 
