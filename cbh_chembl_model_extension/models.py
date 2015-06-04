@@ -383,7 +383,7 @@ class PinnedCustomField(TimeStampedModel):
                                       "taggingLabel": "(adding new)",
                                       "taggingTokens": "",
                                  }}},
-                            PERCENTAGE: {"name" :"Percentage field", "data": { "type": "number", "maximum" : 100.0, "minimum": 0.0}},
+                            PERCENTAGE: {"name" :"Percentage field", "data": { "type": "number", "maximum" : 100.0, "minimum": 0.1}},
                             DATE:  {"name": "Date Field - today or past" , "data":{"type": "string",   "format": "date"}},
                         
                         }
