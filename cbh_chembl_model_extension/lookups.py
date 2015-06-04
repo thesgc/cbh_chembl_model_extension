@@ -39,7 +39,7 @@ class KeyValuesAll(KeyValues):
         if len(statements) == 1:
             return (statements[0], values)
         else: 
-            return (" and ".join( statements), values)
+            return ("(%s)" % " and ".join( statements), values)
 
 class KeyValuesAny(KeyValues):
     lookup_name = 'kv_any'
@@ -49,7 +49,7 @@ class KeyValuesAny(KeyValues):
         if len(statements) == 1:
             return (statements[0], values)
         else: 
-            return (" or ".join( statements), values)
+            return ("(%s)" % " or ".join( statements), values)
 
 
 
