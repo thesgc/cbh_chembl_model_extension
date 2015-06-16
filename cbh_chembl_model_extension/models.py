@@ -370,7 +370,7 @@ class PinnedCustomField(TimeStampedModel):
     DATE = "date"
 
     FIELD_TYPE_CHOICES = {
-                            "char" : {"name" : "Short text field", "data": { "type": "string" }},
+                            "char" : {"name" : "Short text field", "data": { "type": "string"}},
 
                             TEXT : {"name" : "Short text field", "data": { "type": "string" }},
                             TEXTAREA: {"name" :"Full text", "data": { "type": "string" , "format" : "textarea"}},
@@ -426,7 +426,6 @@ class PinnedCustomField(TimeStampedModel):
 
 
 
-
 class CBHCompoundBatch(TimeStampedModel):
     '''Holds the batch information for an uploaded compound before it is fully registered'''
     ctab = models.TextField(null=True, blank=True, default=None)
@@ -469,15 +468,7 @@ class CBHCompoundBatch(TimeStampedModel):
         super(CBHCompoundBatch, self).save(*args, **kwargs)
 
     def validate(self, temp_props=True):         
-        #self.set_pains_matches()
         self.standardise()
-        # if temp_props:
-        #     self.generate_temp_properties()
-        
-
-    # def set_pains_matches(self):
-
-    #     self.warnings = detect_pains(self.std_ctab, {})
 
     def standardise(self):
         if self.canonical_smiles:
