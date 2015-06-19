@@ -384,7 +384,7 @@ class PinnedCustomField(TimeStampedModel):
                                       "taggingTokens": "",
                                  }}},
                             PERCENTAGE: {"name" :"Percentage field", "data": { "type": "number", "maximum" : 100.0, "minimum": 0.1}},
-                            DATE:  {"name": "Date Field - today or past" , "data":{"type": "string",   "format": "date"}},
+                            DATE:  {"name": "Date Field" , "data":{"type": "string",   "format": "date"}},
                         
                         }
     #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
@@ -471,21 +471,24 @@ class CBHCompoundBatch(TimeStampedModel):
         self.standardise()
 
     def standardise(self):
+        print self.standard_inchi
         if self.canonical_smiles:
             return
         if not self.std_ctab:
             self.std_ctab = self.ctab
         if not self.standard_inchi:
+
             self.standard_inchi = inchiFromPipe(self.std_ctab, settings.INCHI_BINARIES_LOCATION['1.02'])
         if not self.standard_inchi:
             raise Exception("inchi_error")
         else:            
-            self.standard_inchi_key = InchiToInchiKey(self.standard_inchi)
+            self.standard_inchi_key = InchiToInchiKey(self.standard_inchi.encode("ascii"))
                         
 
 
     def generate_structure_and_dictionary(self,chirality="1"):
         if self.id:
+            print "not updating"
             #currently we dont update existing compound records
             pass
         else:
@@ -499,13 +502,18 @@ class CBHCompoundBatch(TimeStampedModel):
                     entity_id=self.id )
             else:
                 if not self.canonical_smiles :
-                    pybelmol = readstring("inchi", self.standard_inchi)
-                    self.canonical_smiles = pybelmol.write("can").split("\t")[0]
-                    self.properties["cdxml"] = pybelmol.write("cdxml")
-
-                    mol = MolFromInchi(self.standard_inchi)
-                    if mol:
-                        self.std_ctab = MolToMolBlock(mol, includeStereo=True)
+                    try:
+                        pybelmol = readstring("inchi", str(self.standard_inchi).encode("ascii"))
+                        self.canonical_smiles = pybelmol.write("can").split("\t")[0]
+                        self.properties["cdxml"] = pybelmol.write("cdxml")
+                    except:
+                        pass
+                    try:
+                        mol = MolFromInchi(self.standard_inchi.encode('ascii', 'ignore'))
+                        if mol:
+                            self.std_ctab = MolToMolBlock(mol, includeStereo=True)
+                    except:
+                        pass
                     inchi_key = self.standard_inchi_key
                     inchi = self.standard_inchi
                     if not self.related_molregno_id:
