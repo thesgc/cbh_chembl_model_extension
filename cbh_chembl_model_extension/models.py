@@ -471,7 +471,6 @@ class CBHCompoundBatch(TimeStampedModel):
         self.standardise()
 
     def standardise(self):
-        print self.standard_inchi
         if self.canonical_smiles:
             return
         if not self.std_ctab:
