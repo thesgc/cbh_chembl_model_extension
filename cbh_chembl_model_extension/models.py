@@ -369,22 +369,23 @@ class PinnedCustomField(TimeStampedModel):
     PERCENTAGE = "percentage"
     DATE = "date"
 
+
     FIELD_TYPE_CHOICES = {
                             "char" : {"name" : "Short text field", "data": { "type": "string"}},
 
-                            TEXT : {"name" : "Short text field", "data": { "type": "string" }},
-                            TEXTAREA: {"name" :"Full text", "data": { "type": "string" , "format" : "textarea"}},
+                            TEXT : {"name" : "Short text field", "data": { "type": "string" ,"icon":"<span class ='glyphicon glyphicon-font'></span>" }},
+                            TEXTAREA: {"name" :"Full text", "data": { "icon":"<span class ='glyphicon glyphicon-font'></span>","type": "string" , "format" : "textarea"}},
                             UISELECT: {"name" :"Choice field", "data": { "type": "string" , "format" : "uiselect"}},
-                            INTEGER: {"name" :"Integer field", "data": { "type": "integer"}},
-                            NUMBER: {"name" :"Decimal field", "data": { "type": "number"}},
-                            UISELECTTAG: {"name" : "Choice allowing create", "data":  { "type": "string", "format" : "uiselect"}},
-                            UISELECTTAGS: {"name" : "Tags field allowing create" , "data": { "type": "array", "format" : "uiselect", "options": {
+                            INTEGER: {"name" :"Integer field", "data": { "icon":"<span class ='glyphicon glyphicon-stats'></span>" ,"type": "integer"}},
+                            NUMBER: {"name" :"Decimal field", "data": { "icon":"<span class ='glyphicon glyphicon-sound-5-1'></span>","type": "number"}},
+                            UISELECTTAG: {"name" : "Choice allowing create", "data":  { "icon":"<span class ='glyphicon glyphicon-tag'></span>", "type": "string", "format" : "uiselect"}},
+                            UISELECTTAGS: {"name" : "Tags field allowing create" , "data": { "icon":"<span class ='glyphicon glyphicon-tags'></span>","type": "array", "format" : "uiselect", "options": {
                                       "tagging": "tagFunction" ,
                                       "taggingLabel": "(adding new)",
                                       "taggingTokens": "",
                                  }}},
-                            PERCENTAGE: {"name" :"Percentage field", "data": { "type": "number", "maximum" : 100.0, "minimum": 0.1}},
-                            DATE:  {"name": "Date Field" , "data":{"type": "string",   "format": "date"}},
+                            PERCENTAGE: {"name" :"Percentage field", "data": { "icon":"<span class ='glyphicon'>%</span>", "type": "number", "maximum" : 100.0, "minimum": 0.1}},
+                            DATE:  {"name": "Date Field" , "data":{"icon":"<span class ='glyphicon glyphicon-calendar'></span>","type": "string",   "format": "date"}},
                         
                         }
     #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
