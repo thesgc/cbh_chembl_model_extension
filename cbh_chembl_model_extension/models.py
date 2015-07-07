@@ -153,8 +153,8 @@ $$$$'''
 class CBHCompoundBatchManager(hstore.HStoreManager):
     def blinded(self,project=None):
         '''Generate a batch with a blinded id'''
-      
-        return CBHCompoundBatch(project=project, blinded_batch_id="EMPTY_ID")
+        blinded_batch_id = "EMPTY_ID"
+        return CBHCompoundBatch(project=project, blinded_batch_id=blinded_batch_id)
 
 
     def from_rd_mol(self, rd_mol, orig_ctab=None,smiles="", project=None, reDraw=None):
