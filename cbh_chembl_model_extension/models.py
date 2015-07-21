@@ -297,6 +297,13 @@ class ProjectPermissionMixin(models.Model):
 
 
 
+class ProjectType(TimeStampedModel):
+    ''' Allows configuration of parts of the app on a per project basis - initially will be used to separate out compound and inventory projects '''
+    name = models.CharField(max_length=100, db_index=True, null=True, blank=True, default=None)
+    show_compounds = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return self.name
 
 
 
@@ -309,6 +316,7 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name="project",null=True, blank=True, default=None, )
+    project_type = models.ForeignKey("cbh_chembl_model_extension.ProjectType", related_name="project",null=True, blank=True, default=None)
     is_default = models.BooleanField(default=False)
     #allow configuration of project types 
     #project_type = models.
