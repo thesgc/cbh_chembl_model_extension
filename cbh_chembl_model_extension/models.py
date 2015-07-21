@@ -63,6 +63,8 @@ from StringIO import StringIO
 from django.template.defaultfilters import slugify
 from cbh_chembl_model_extension.lookups import *
 
+from solo.models import SingletonModel
+
 
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
@@ -308,6 +310,8 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     created_by = models.ForeignKey("auth.User")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name="project",null=True, blank=True, default=None, )
     is_default = models.BooleanField(default=False)
+    #allow configuration of project types 
+    #project_type = models.
     
     class Meta:
         get_latest_by = 'created'
@@ -345,11 +349,28 @@ class CustomFieldConfig(TimeStampedModel):
 class CBHCompoundMultipleBatch(TimeStampedModel):
     '''Holds a list of batches'''
     created_by = models.CharField(max_length=50, db_index=True, null=True, blank=True, default=None)
-    project = models.ForeignKey(Project, null=True, blank=True, default=None)    
+    project = models.ForeignKey(Project, null=True, blank=True, default=None)
     uploaded_data = PickledObjectField()
     uploaded_file = models.OneToOneField(FlowFile, null=True, blank=True, default=None)
     saved = models.BooleanField(default=False)
     #batches = models.ForeignKey(CBHCompoundBatch, null=True, default=None)
+
+class SkinningConfig(SingletonModel):
+    '''Holds information about custom system messages and other customisable elements'''
+    #created_by = models.ForeignKey("auth.User")
+    instance_alias = models.CharField(max_length=50, null=True, blank=False, default='ChemReg')
+    project_alias = models.CharField(max_length=50, null=True, blank=False, default='project')
+    result_alias = models.CharField(max_length=50,null=True, blank=False, default='result')
+
+    def __unicode__(self):
+        return u"Skinning Configuration"
+
+    class Meta:
+        verbose_name = "Skinning Configuration"
+    #we can eventually use this to specify different chem sketching tools
+    
+
+
 
 
 
