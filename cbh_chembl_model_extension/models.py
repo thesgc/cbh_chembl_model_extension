@@ -69,6 +69,8 @@ from solo.models import SingletonModel
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
 hstore.DictionaryField.register_lookup(KeyValuesAll)
+hstore.DictionaryField.register_lookup(KeyValuesSingle)
+
 
 '''
 Signal code - on a webauthed system, if a user is auto-created by a webauth login,
