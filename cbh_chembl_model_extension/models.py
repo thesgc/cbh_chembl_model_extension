@@ -92,8 +92,8 @@ if "django_webauth" in settings.INSTALLED_APPS:
                     email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (admin.first_name, new_user_name)
                     send_mail('New Webauth User', email_message, email_from, [admin.email,], fail_silently=False, html_message=html_email)
                 #we also need to email the user with a welcome message
-                welcome_message = 'Welcome to Chemreg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
-                html_welcome_message = '<p>Welcome to Chemreg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
+                welcome_message = 'Welcome to ChemReg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
+                html_welcome_message = '<p>Welcome to ChemReg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
                 send_mail('Welcome to ChemReg', welcome_message, email_from, [instance.email,], fail_silently=False, html_message=html_welcome_message)
 
 
@@ -318,7 +318,7 @@ class Project(TimeStampedModel, ProjectPermissionMixin):
     project_key = models.SlugField(max_length=50, db_index=True, null=True, blank=True, default=None, unique=True)
     created_by = models.ForeignKey("auth.User")
     custom_field_config = models.ForeignKey("cbh_chembl_model_extension.CustomFieldConfig", related_name="project",null=True, blank=True, default=None, )
-    project_type = models.ForeignKey("cbh_chembl_model_extension.ProjectType", related_name="project",null=True, blank=True, default=None)
+    project_type = models.ForeignKey(ProjectType,null=True, blank=True, default=None)
     is_default = models.BooleanField(default=False)
     #allow configuration of project types 
     #project_type = models.
