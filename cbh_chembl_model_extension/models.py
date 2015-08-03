@@ -399,6 +399,8 @@ class PinnedCustomField(TimeStampedModel):
     CHECKBOXES = "checkboxes"
     PERCENTAGE = "percentage"
     DATE = "date"
+    IMAGE = "imghref"
+    LINK = "href"
 
 
     FIELD_TYPE_CHOICES = {
@@ -417,9 +419,9 @@ class PinnedCustomField(TimeStampedModel):
                                  }}},
                             PERCENTAGE: {"name" :"Percentage field", "data": { "icon":"<span class ='glyphicon'>%</span>", "type": "number", "maximum" : 100.0, "minimum": 0.1}},
                             DATE:  {"name": "Date Field" , "data":{"icon":"<span class ='glyphicon glyphicon-calendar'></span>","type": "string",   "format": "date"}},
-                        
+                            LINK : {"name" : "Link to server or external", "data": { "format": "href", "type": "string" ,"icon":"<span class ='glyphicon glyphicon glyphicon-new-window'></span>" }},
+                            IMAGE : {"name" : "Image link to embed", "data": {"format": "imghref", "type": "string" ,"icon":"<span class ='glyphicon glyphicon glyphicon-picture'></span>" }},
                         }
-    #                            CHECKBOXES : {"name": "Checkbox Fields", "data": {"type" : "array", "format": "checkboxes"}}
 
 
     field_key = models.CharField(max_length=50,  default="")
