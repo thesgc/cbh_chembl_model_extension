@@ -1,6 +1,5 @@
-from django.db.models.lookups import In, Contains
-from django_hstore.hstore import DictionaryField
-from django_hstore.lookups import HStoreLookupMixin, get_cast_for_param
+from django.db.models.lookups import Contains
+from django_hstore.lookups import HStoreLookupMixin
 
 
 class KeyValues(HStoreLookupMixin, Contains):

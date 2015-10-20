@@ -1,66 +1,31 @@
 # -*- coding: utf-8 -*-
 from django.db import models, connection
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import Permission, User, Group
-import copy
+from django.contrib.auth.models import User
 
 from django_hstore import hstore
 
 import random
 from chembl_business_model.models import MoleculeDictionary
-from filter_pains import detect_pains
 from chembl_business_model.models import CompoundStructures
 from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import Crippen
-from rdkit.Chem.rdmolfiles import MolToMolBlock, MolFromMolBlock
-from rdkit.Chem import rdMolDescriptors as Descriptors
-from rdkit.Chem.SaltRemover import SaltRemover
-from chembl_business_model.indigoWrapper import indigoObj
+from rdkit.Chem.rdmolfiles import MolToMolBlock
 from django.core.exceptions import ValidationError
-import StringIO
-from django.db import IntegrityError
-import requests
-import base64
-import decimal
 from django.conf import settings
-from django.db.models import Q
-from chembl_business_model.utils import iterateModelRecords
-from chembl_business_model.utils import iterateNModelRecords
-from chembl_business_model.utils import ImageFromMolPP
-from chembl_business_model.utils import cleanup
-from chembl_business_model.models import CompoundImages
-from chembl_business_model.models import CompoundProperties
 from chembl_business_model.models import CompoundStructures
-from chembl_business_model.models import CompoundRecords
-from chembl_business_model.models import MoleculeHierarchy
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import ChemblIdLookup
 from chembl_business_model.tasks import generateCompoundPropertiesTask
-from chembl_business_model.models import Source
-from django.db.models import Avg, Max, Min, Count
-from django.db.models.fields import NOT_PROVIDED
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django_extensions.db.models import TimeStampedModel
 import shortuuid
 from chembl_business_model.utils import inchiFromPipe
 from rdkit.Chem import InchiToInchiKey
 from rdkit.Chem import MolFromInchi
-from rdkit.Chem import Kekulize
 from rdkit.Chem import MolToMolBlock
-from rdkit.Chem import MolFromMolBlock
 from flowjs.models import FlowFile
 from picklefield.fields import PickledObjectField
-import re
 from pybel import readstring
-import json
 from django.db.models.signals import post_save
-from base64 import urlsafe_b64encode
-import requests
-from copy import deepcopy
-from rdkit.Chem import SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags
-from StringIO import StringIO
-from django.template.defaultfilters import slugify
 from cbh_chembl_model_extension.lookups import *
 
 
@@ -267,7 +232,6 @@ class CBHCompoundBatch(TimeStampedModel):
         if self.id:
             print "not updating"
             # currently we dont update existing compound records
-            pass
         else:
             if self.blinded_batch_id:
 
