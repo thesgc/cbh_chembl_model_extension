@@ -24,7 +24,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='pinnedcustomfield',
             name='field_type',
-            field=models.CharField(default=b'char', max_length=15, choices=[(b'text', b'Short text field'), (b'textarea', b'Full text'), (b'uiselect', b'Choice field'), (b'integer', b'Integer field'), (b'number', b'Decimal field'), (b'uiselecttag', b'Choice allowing create'), (b'uiselecttags', b'Tags field allowing create')]),
+            field=models.CharField(default=b'char', max_length=15, choices=[(b'text', b'Short text field'), (b'textarea', b'Full text'), (b'uiselect', b'Choice field'), (
+                b'integer', b'Integer field'), (b'number', b'Decimal field'), (b'uiselecttag', b'Choice allowing create'), (b'uiselecttags', b'Tags field allowing create')]),
             preserve_default=True,
         ),
     ]

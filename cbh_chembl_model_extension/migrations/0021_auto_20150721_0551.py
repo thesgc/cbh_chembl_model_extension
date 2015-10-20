@@ -7,7 +7,8 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cbh_chembl_model_extension', '0020_remove_skinningconfig_created_by'),
+        ('cbh_chembl_model_extension',
+         '0020_remove_skinningconfig_created_by'),
     ]
 
     operations = [

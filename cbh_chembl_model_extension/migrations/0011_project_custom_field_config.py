@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='project',
             name='custom_field_config',
-            field=models.ForeignKey(related_name='project', default=None, blank=True, to='cbh_chembl_model_extension.CustomFieldConfig', null=True),
+            field=models.ForeignKey(related_name='project', default=None, blank=True,
+                                    to='cbh_chembl_model_extension.CustomFieldConfig', null=True),
             preserve_default=True,
         ),
     ]

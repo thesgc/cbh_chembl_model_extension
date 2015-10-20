@@ -13,7 +13,10 @@ from django.db import models, migrations
 # cbh_chembl_model_extension_cbhcompoundbatch          cbh_chembl_model_extension_cbhcompoundmultiplebatch  cbh_chembl_model_extension_projecttype               cbh_chembl_model_extension_skinningconfig
 # cbh_chembl=# alter table cbh_chembl_model_extension_projecttype rename to cbh_core_model_projecttype;
 # ALTER TABLE
-# cbh_chembl=# alter table cbh_chembl_model_extension_skinningconfig rename to cbh_core_model_skinningconfig;
+# cbh_chembl=# alter table cbh_chembl_model_extension_skinningconfig
+# rename to cbh_core_model_skinningconfig;
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -24,22 +27,23 @@ class Migration(migrations.Migration):
     ]
 
     state_operations = [
-      
+
         migrations.AlterField(
             model_name='cbhcompoundbatch',
             name='project',
-            field=models.ForeignKey(default=None, blank=True, to='cbh_core_model.Project', null=True),
+            field=models.ForeignKey(
+                default=None, blank=True, to='cbh_core_model.Project', null=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='cbhcompoundmultiplebatch',
             name='project',
-            field=models.ForeignKey(default=None, blank=True, to='cbh_core_model.Project', null=True),
+            field=models.ForeignKey(
+                default=None, blank=True, to='cbh_core_model.Project', null=True),
             preserve_default=True,
         ),
 
     ]
-
 
     operations = [
         # By running only state operations, we are making Django think it has

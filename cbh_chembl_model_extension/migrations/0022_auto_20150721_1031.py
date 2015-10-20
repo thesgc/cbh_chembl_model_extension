@@ -16,10 +16,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectType',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('created', django_extensions.db.fields.CreationDateTimeField(default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
-                ('modified', django_extensions.db.fields.ModificationDateTimeField(default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
-                ('name', models.CharField(default=None, max_length=100, null=True, db_index=True, blank=True)),
+                ('id', models.AutoField(
+                    verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('created', django_extensions.db.fields.CreationDateTimeField(
+                    default=django.utils.timezone.now, verbose_name='created', editable=False, blank=True)),
+                ('modified', django_extensions.db.fields.ModificationDateTimeField(
+                    default=django.utils.timezone.now, verbose_name='modified', editable=False, blank=True)),
+                ('name', models.CharField(
+                    default=None, max_length=100, null=True, db_index=True, blank=True)),
                 ('show_compounds', models.BooleanField(default=True)),
             ],
             options={
@@ -32,7 +36,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='project',
             name='project_type',
-            field=models.ForeignKey(related_name='project', default=None, blank=True, to='cbh_chembl_model_extension.ProjectType', null=True),
+            field=models.ForeignKey(related_name='project', default=None,
+                                    blank=True, to='cbh_chembl_model_extension.ProjectType', null=True),
             preserve_default=True,
         ),
     ]

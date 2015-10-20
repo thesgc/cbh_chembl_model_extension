@@ -48,7 +48,6 @@ class Migration(migrations.Migration):
         ),
     ]
 
-
     operations = [
         # By running only state operations, we are making Django think it has
         # applied this migration to the database. In reality, we renamed a

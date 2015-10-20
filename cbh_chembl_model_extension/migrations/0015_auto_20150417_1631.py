@@ -4,10 +4,6 @@ from __future__ import unicode_literals
 from django.db import models, migrations
 
 
-
-
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -18,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cbhcompoundmultiplebatch',
             name='project',
-            field=models.ForeignKey(default=None, blank=True, to='cbh_chembl_model_extension.Project', null=True),
+            field=models.ForeignKey(
+                default=None, blank=True, to='cbh_chembl_model_extension.Project', null=True),
             preserve_default=True,
         ),
         migrations.AddField(

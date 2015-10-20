@@ -13,7 +13,8 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='cbhcompoundbatch',
-            options={'ordering': ('-modified', '-created'), 'get_latest_by': 'modified'},
+            options={
+                'ordering': ('-modified', '-created'), 'get_latest_by': 'modified'},
         ),
         migrations.AlterField(
             model_name='pinnedcustomfield',
@@ -24,7 +25,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='pinnedcustomfield',
             name='field_type',
-            field=models.CharField(default=b'char', max_length=15, choices=[(b'textarea', b'Full text'), (b'text', b'Short text field'), (b'uiselecttag', b'Choice allowing create'), (b'number', b'Decimal field'), (b'uiselect', b'Choice field'), (b'integer', b'Integer field'), (b'uiselecttags', b'Tags field allowing create')]),
+            field=models.CharField(default=b'char', max_length=15, choices=[(b'textarea', b'Full text'), (b'text', b'Short text field'), (b'uiselecttag', b'Choice allowing create'), (
+                b'number', b'Decimal field'), (b'uiselect', b'Choice field'), (b'integer', b'Integer field'), (b'uiselecttags', b'Tags field allowing create')]),
             preserve_default=True,
         ),
     ]

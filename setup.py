@@ -36,9 +36,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'django_extensions','shortuuid','django_hstore','django-picklefield', 'xlrd',
-    'xlsxwriter',
-            'xmltodict',
+        'django_extensions', 'shortuuid', 'django_hstore', 'django-picklefield', 'xlrd',
+        'xlsxwriter',
+        'xmltodict',
 
     ],
     license="MIT",

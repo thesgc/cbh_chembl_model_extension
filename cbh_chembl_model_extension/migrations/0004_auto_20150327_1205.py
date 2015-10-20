@@ -16,13 +16,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='pinnedcustomfield',
             name='description',
-            field=models.CharField(default=b'', max_length=1024, null=True, blank=True),
+            field=models.CharField(
+                default=b'', max_length=1024, null=True, blank=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='pinnedcustomfield',
             name='part_of_blinded_key',
-            field=models.BooleanField(default=False, verbose_name=b'blind key'),
+            field=models.BooleanField(
+                default=False, verbose_name=b'blind key'),
             preserve_default=True,
         ),
     ]

@@ -20,7 +20,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cbhcompoundbatch',
             name='blinded_batch_id',
-            field=models.CharField(default=b'', max_length=12, null=True, blank=True),
+            field=models.CharField(
+                default=b'', max_length=12, null=True, blank=True),
             preserve_default=True,
         ),
     ]
