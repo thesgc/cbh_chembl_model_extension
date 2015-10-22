@@ -3,7 +3,7 @@ from django.db import models, connection
 from django.contrib.auth.models import User
 
 from django_hstore import hstore
-
+import json
 import random
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import CompoundStructures
@@ -11,6 +11,7 @@ from rdkit import Chem
 from rdkit.Chem.rdmolfiles import MolToMolBlock
 from django.core.exceptions import ValidationError
 from django.conf import settings
+import requests
 from chembl_business_model.models import CompoundStructures
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import ChemblIdLookup
@@ -95,8 +96,86 @@ True
 
 $$$$'''
 
+from rdkit.Chem.AllChem import Compute2DCoords
+import base64
+import StringIO
+from rdkit.Chem import  SDMolSupplier, MolToMolBlock, MolFromSmarts, SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags,   AssignAtomChiralTagsFromStructure
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def _parseMolData(data):
+    suppl = SDMolSupplier()
+
+    suppl.SetData(str(data), sanitize=False)
+    data = [x for x in suppl if x]
+    for x in data:
+        if not x.HasProp("_drawingBondsWedged"):
+            SanitizeMol(x)
+        ctab = MolToMolBlock(x)
+        ctablines = [item.split("0.0000") for item in ctab.split("\n") if "0.0000" in item]
+        needs_redraw = 0
+        for line in ctablines:
+            if len(line) > 3:
+                needs_redraw +=1
+        if needs_redraw == len(ctablines):
+             #check for overlapping molecules in the CTAB 
+            SanitizeMol(x)
+            Compute2DCoords(x)
+            print "testr"
+    return data
+
+def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
+    highlights = None
+    if highlightMatch:
+        pattern = MolFromSmarts(highlightMatch)
+        highlights = [mol.GetSubstructMatch(pattern) for mol in mols]
+    kek = True
+    if mols[0].HasProp("_drawingBondsWedged"):
+        kek=False
+    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size,size),
+                                    legends=[ legend for x in mols], kekulize=kek,highlightAtomLists=highlights
+ )
+    image.save(f, format)
+
+def _mols2imageString(mols,size,legend, format, recalc=False, highlightMatch=None):
+    if not mols:
+        return ''
+ #   if recalc:
+  #      _apply(mols, _computeCoords)
+    imageData = StringIO.StringIO()
+    for mol in mols:
+        try:
+            SanitizeMol(mol,sanitizeOps=SanitizeFlags.SANITIZE_ALL^SanitizeFlags.SANITIZE_CLEANUPCHIRALITY^Chem.SanitizeFlags.SANITIZE_SETCONJUGATION^Chem.SanitizeFlags.SANITIZE_SETAROMATICITY)
+        except ValueError:
+            return imageData.getvalue()
+        AllChem.AssignAtomChiralTagsFromStructure(mol,replaceExistingTags=False)
+    _mols2imageStream(mols, imageData, format, size, legend, highlightMatch=highlightMatch)
+    return imageData.getvalue()
+
+def _ctab2image(data,size,legend, recalc=True, highlightMatch=None):
+    data = _mols2imageString(_parseMolData(data),size,legend, 'PNG', recalc=recalc, highlightMatch=highlightMatch)
+    
+    #if request.is_ajax:
+    return base64.b64encode(data)
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
+    def get_image_for_assayreg(self, field, dpc, level):
+        project = dpc.get("l0_permitted_projects")[0]
+        if project[len(project) - 1] == "/":
+            project = project[:-1]
+        bits = project.split("/")
+        id = bits[len(bits)-1]
+        field_value = dpc[level]["project_data"].get(
+            field["elasticsearch_fieldname"], None)
+        #Fetch a batch with this UOx id if it is in the same project
+        if field_value is not None:
+            batches = CBHCompoundBatch.objects.filter(
+                related_molregno__chembl__chembl_id=field_value,
+                project_id=int(id))
+            if batches.count() > 0:
+                if batches[0].ctab:
+                    return  _ctab2image(batches[0].ctab,75,False, recalc=None)
+        return None
 
     def blinded(self, project=None):
         '''Generate a batch with a blinded id'''
@@ -194,6 +273,9 @@ class CBHCompoundBatch(TimeStampedModel):
     blinded_batch_id = models.CharField(
         default="", null=True, blank=True, max_length=12)
     batch_number = models.IntegerField(default=-1, null=True, blank=True,)
+
+
+
 
     def get_uk(self,):
         return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
