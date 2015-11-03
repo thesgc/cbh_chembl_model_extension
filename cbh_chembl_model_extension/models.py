@@ -28,7 +28,7 @@ from picklefield.fields import PickledObjectField
 from pybel import readstring
 from django.db.models.signals import post_save
 from cbh_chembl_model_extension.lookups import *
-
+from copy import copy
 
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
@@ -213,7 +213,10 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             all_lines = ["", "", "", ] + lines + [BONDS_WEDGED_SDF_PROP, ]
 
             ctab = "\n".join(all_lines)
-        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, )
+        image = _ctab2image(copy(ctab),75,False, recalc=None)
+        big_image = _ctab2image(copy(ctab), 400, False, recalc=None)
+        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, image=image, bigimage=big_image)
+
         if project:
             batch.project_id = project.id
         return batch
@@ -254,8 +257,11 @@ class CBHCompoundBatch(TimeStampedModel):
     original_smiles = models.TextField(null=True, blank=True, default=None)
     editable_by = hstore.DictionaryField()
     uncurated_fields = hstore.DictionaryField()
+    image = models.TextField(default="")
+    bigimage = models.TextField(default="")
     created_by = models.CharField(
         max_length=50, db_index=True, null=True, blank=True, default=None)
+    created_by_id = models.IntegerField(null=True, blank=True, default=None)
     #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
     related_molregno = models.ForeignKey(
         MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno", )
@@ -324,6 +330,7 @@ class CBHCompoundBatch(TimeStampedModel):
                                                               entity_type="DOCUMENT",
                                                               entity_id=self.id)
             else:
+                
                 if not self.canonical_smiles:
                     try:
                         pybelmol = readstring(
