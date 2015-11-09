@@ -395,7 +395,7 @@ class CBHCompoundBatch(TimeStampedModel):
                             structure = CompoundStructures(
                                 molecule=moldict, molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
                             structure.save()
-                            if structure.id:
+                            if structure.molecule_id:
                                 generateCompoundPropertiesTask(structure)
                         self.related_molregno = moldict
                     self.save(validate=False)
