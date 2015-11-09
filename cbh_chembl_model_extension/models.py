@@ -317,6 +317,28 @@ class CBHCompoundBatch(TimeStampedModel):
                 self.standard_inchi.encode("ascii"))
 
     def generate_structure_and_dictionary(self, chirality="1"):
+        print self.__dict__
+        print self.ctab
+        print """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        """
         if self.id:
             print "not updating"
             # currently we dont update existing compound records
@@ -373,6 +395,7 @@ class CBHCompoundBatch(TimeStampedModel):
                             structure = CompoundStructures(
                                 molecule=moldict, molfile=self.std_ctab, standard_inchi_key=inchi_key, standard_inchi=inchi)
                             structure.save()
-                            generateCompoundPropertiesTask(structure)
+                            if structure.id:
+                                generateCompoundPropertiesTask(structure)
                         self.related_molregno = moldict
                     self.save(validate=False)
