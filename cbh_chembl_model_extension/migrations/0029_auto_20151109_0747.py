@@ -10,7 +10,7 @@ def sort_user_ids(apps,stuff):
 
     paginator = Paginator(CBHCompoundBatch.objects.all(), 1000) # chunks of 1000
 
-    for page in range(1, paginator.num_pages):
+    for page in range(0, paginator.num_pages):
         for b in paginator.page(page).object_list:
             # here you can do what you want with the row
             if b.created_by.strip():
