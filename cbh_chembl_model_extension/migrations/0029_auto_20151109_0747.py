@@ -11,7 +11,7 @@ def sort_user_ids(apps,stuff):
     paginator = Paginator(CBHCompoundBatch.objects.all(), 1000) # chunks of 1000
 
     for page in range(1, paginator.num_pages):
-        for row in paginator.page(page).objects_list:
+        for row in paginator.page(page).object_list:
             # here you can do what you want with the row
             u = User.objects.filter(username=b.created_by)
             count = u.count()
