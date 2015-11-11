@@ -158,6 +158,11 @@ def _ctab2image(data,size,legend, recalc=True, highlightMatch=None):
     #if request.is_ajax:
     return base64.b64encode(data)
 
+
+def set_images(batch):
+    batch.image = _ctab2image(copy(batch.ctab),75,False, recalc=None)
+    batch.bigimage = _ctab2image(copy(batch.ctab), 400, False, recalc=None)
+
 class CBHCompoundBatchManager(hstore.HStoreManager):
     def get_image_for_assayreg(self, field, dpc, level):
         project = dpc.get("l0_permitted_projects")[0]
@@ -213,10 +218,9 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             all_lines = ["", "", "", ] + lines + [BONDS_WEDGED_SDF_PROP, ]
 
             ctab = "\n".join(all_lines)
-        image = _ctab2image(copy(ctab),75,False, recalc=None)
-        big_image = _ctab2image(copy(ctab), 400, False, recalc=None)
-        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles, image=image, bigimage=big_image)
 
+        batch = CBHCompoundBatch(ctab=ctab, original_smiles=smiles)
+        set_images(batch)
         if project:
             batch.project_id = project.id
         return batch
@@ -319,26 +323,7 @@ class CBHCompoundBatch(TimeStampedModel):
     def generate_structure_and_dictionary(self, chirality="1"):
         print self.__dict__
         print self.ctab
-        print """
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        """
         if self.id:
             print "not updating"
             # currently we dont update existing compound records
