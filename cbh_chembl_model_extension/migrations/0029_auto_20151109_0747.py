@@ -13,20 +13,21 @@ def sort_user_ids(apps,stuff):
     for page in range(1, paginator.num_pages +1):
         for b in paginator.page(page).object_list:
             # here you can do what you want with the row
-            if b.created_by.strip():
-                u = User.objects.filter(username=b.created_by.strip())
-                count = u.count()
-                if count >= 1:
-                    b.created_by_id = u[0].id
-                else:
-                    split_name = b.created_by.split(" ")
-                    if len(split_name) == 2:
-                        u = User.objects.filter(first_name=split_name[0].strip(), last_name=split_name[1].strip())
-                        count = u.count()
-                        if count == 1:
-                            b.created_by_id = u[0].id
-                if b.created_by_id:
-                    b.save()
+            if b.created_by:
+                if b.created_by.strip():
+                    u = User.objects.filter(username=b.created_by.strip())
+                    count = u.count()
+                    if count >= 1:
+                        b.created_by_id = u[0].id
+                    else:
+                        split_name = b.created_by.split(" ")
+                        if len(split_name) == 2:
+                            u = User.objects.filter(first_name=split_name[0].strip(), last_name=split_name[1].strip())
+                            count = u.count()
+                            if count == 1:
+                                b.created_by_id = u[0].id
+                    if b.created_by_id:
+                        b.save()
 
   
 

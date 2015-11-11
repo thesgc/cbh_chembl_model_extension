@@ -13,8 +13,9 @@ def sort_compound_images(apps,stuff):
     for page in range(1, paginator.num_pages +1):
         for b in paginator.page(page).object_list:
             # here you can do what you want with the row
-            set_images(b)
-            b.save()
+            if b.ctab:
+                set_images(b)
+                b.save()
         print "done page %d of %d" % (page ,paginator.num_pages)
 
   
