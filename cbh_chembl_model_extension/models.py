@@ -321,8 +321,7 @@ class CBHCompoundBatch(TimeStampedModel):
                 self.standard_inchi.encode("ascii"))
 
     def generate_structure_and_dictionary(self, chirality="1"):
-        print self.__dict__
-        print self.ctab
+
 
         if self.id:
             print "not updating"
