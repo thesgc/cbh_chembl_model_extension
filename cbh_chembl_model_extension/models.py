@@ -35,7 +35,6 @@ hstore.DictionaryField.register_lookup(KeyValuesAny)
 hstore.DictionaryField.register_lookup(KeyValuesAll)
 hstore.DictionaryField.register_lookup(KeyValuesSingle)
 
-from cbh_core_model.models import Project
 '''
 Signal code - on a webauthed system, if a user is auto-created by a webauth login,
 notify a superuser.
@@ -244,7 +243,7 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
     '''Holds a list of batches'''
     created_by = models.CharField(
         max_length=50, db_index=True, null=True, blank=True, default=None)
-    project = models.ForeignKey(Project, null=True, blank=True, default=None)
+    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
     uploaded_data = PickledObjectField()
     uploaded_file = models.OneToOneField(
         FlowFile, null=True, blank=True, default=None)
@@ -279,7 +278,7 @@ class CBHCompoundBatch(TimeStampedModel):
     multiple_batch_id = models.IntegerField(default=0)
     #multiple_batch_id = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None, to_field="id")
     objects = CBHCompoundBatchManager()
-    project = models.ForeignKey(Project, null=True, blank=True, default=None)
+    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
     blinded_batch_id = models.CharField(
         default="", null=True, blank=True, max_length=12)
     batch_number = models.IntegerField(default=-1, null=True, blank=True,)
