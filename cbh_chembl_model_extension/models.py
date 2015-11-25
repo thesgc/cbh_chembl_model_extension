@@ -131,7 +131,7 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
     kek = True
     if mols[0].HasProp("_drawingBondsWedged"):
         kek=False
-    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size * 1.2,size  * 1.2), 
+    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size,size), 
                                     legends=[ legend for x in mols], kekulize=kek,highlightAtomLists=highlights
  )
     image.save(f, format)
