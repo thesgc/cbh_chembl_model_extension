@@ -248,7 +248,7 @@ class CBHCompoundMultipleBatch(TimeStampedModel):
         max_length=50, db_index=True, null=True, blank=True, default=None)
     project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
     uploaded_data = PickledObjectField()
-    uploaded_file = models.OneToOneField(
+    uploaded_file = models.ForeignKey(
         FlowFile, null=True, blank=True, default=None)
     saved = models.BooleanField(default=False)
     #batches = models.ForeignKey(CBHCompoundBatch, null=True, default=None)
