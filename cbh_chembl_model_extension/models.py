@@ -29,6 +29,10 @@ from pybel import readstring
 from django.db.models.signals import post_save
 from cbh_chembl_model_extension.lookups import *
 from copy import copy
+from rdkit.Chem.AllChem import Compute2DCoords
+import base64
+import StringIO
+from rdkit.Chem import  SDMolSupplier, MolToMolBlock, MolFromSmarts, SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags,   AssignAtomChiralTagsFromStructure
 
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
@@ -95,10 +99,6 @@ True
 
 $$$$'''
 
-from rdkit.Chem.AllChem import Compute2DCoords
-import base64
-import StringIO
-from rdkit.Chem import  SDMolSupplier, MolToMolBlock, MolFromSmarts, SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags,   AssignAtomChiralTagsFromStructure
 
 #-----------------------------------------------------------------------------------------------------------------------
 
