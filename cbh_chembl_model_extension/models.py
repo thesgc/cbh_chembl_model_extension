@@ -132,8 +132,6 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
     if mols[0].HasProp("_drawingBondsWedged"):
         kek=False
     fit = False
-    if size > 300:
-        fit = True
     image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size,size),
                                     legends=[ legend for x in mols], kekulize=kek,highlightAtomLists=highlights, fitImage=fit
  )
@@ -162,8 +160,8 @@ def _ctab2image(data,size,legend, recalc=True, highlightMatch=None):
 
 
 def set_images(batch):
-    batch.bigimage = _ctab2image(copy(batch.ctab), 500, False, recalc=None)
-    batch.image = _ctab2image(copy(batch.ctab),125,False, recalc=None)
+    batch.bigimage = _ctab2image(copy(batch.ctab), 400, False, recalc=None)
+    batch.image = _ctab2image(copy(batch.ctab),80,False, recalc=None)
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
     def get_image_for_assayreg(self, field, dpc, level):
