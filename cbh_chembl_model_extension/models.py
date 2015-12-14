@@ -51,7 +51,7 @@ if "django_webauth" in settings.INSTALLED_APPS:
         if kwargs["created"]:  # only for new users
             # need to email superusers to inform them a new user has logged in
             if instance.email:
-                if user.username != user.email:
+                if instance.username != instance.email:
                     #This is not an invited user
                     admin_users = find_superuser()
                     email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
