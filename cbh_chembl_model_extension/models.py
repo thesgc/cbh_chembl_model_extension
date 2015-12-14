@@ -51,22 +51,24 @@ if "django_webauth" in settings.INSTALLED_APPS:
         if kwargs["created"]:  # only for new users
             # need to email superusers to inform them a new user has logged in
             if instance.email:
-                admin_users = find_superuser()
-                email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
-                new_user_name = '%s %s' % (
-                    instance.first_name, instance.last_name)
-                for admin in admin_users:
-                    html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (
-                        admin.first_name, new_user_name)
-                    email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (
-                        admin.first_name, new_user_name)
-                    send_mail('New Webauth User', email_message, email_from, [
-                              admin.email, ], fail_silently=False, html_message=html_email)
-                # we also need to email the user with a welcome message
-                welcome_message = 'Welcome to ChemReg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
-                html_welcome_message = '<p>Welcome to ChemReg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
-                send_mail('Welcome to ChemReg', welcome_message, email_from, [
-                          instance.email, ], fail_silently=False, html_message=html_welcome_message)
+                if user.username != user.email:
+                    #This is not an invited user
+                    admin_users = find_superuser()
+                    email_from = 'no-reply-chemreg@chembiohub.ox.ac.uk'
+                    new_user_name = '%s %s' % (
+                        instance.first_name, instance.last_name)
+                    for admin in admin_users:
+                        html_email = '<p>Hi %s, <br>A new user has logged onto the system via Webauth, %s. <br>You should add them to any applicable projects.<br>Thanks<br>ChemBio Hub ChemReg</p>' % (
+                            admin.first_name, new_user_name)
+                        email_message = 'Hi %s, A new user has logged onto the system via Webauth, %s.You should add them to any applicable projects' % (
+                            admin.first_name, new_user_name)
+                        send_mail('New Webauth User', email_message, email_from, [
+                                  admin.email, ], fail_silently=False, html_message=html_email)
+                    # we also need to email the user with a welcome message
+                    welcome_message = 'Welcome to ChemReg, %s! You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.' % new_user_name
+                    html_welcome_message = '<p>Welcome to ChemReg, %s! <br>You have successfully logged in using Webauth and you will be added to projects by an admin user shortly.</p>' % new_user_name
+                    send_mail('Welcome to ChemReg', welcome_message, email_from, [
+                              instance.email, ], fail_silently=False, html_message=html_welcome_message)
 
     def find_superuser():
         return User.objects.all().filter(is_active=True, is_superuser=True).exclude(email=None).exclude(email="")
