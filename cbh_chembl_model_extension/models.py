@@ -341,8 +341,10 @@ class CBHCompoundBatch(TimeStampedModel):
                 
                 if not self.canonical_smiles:
                     try:
+                        
+
                         pybelmol = readstring(
-                            "inchi", str(self.standard_inchi).encode("ascii"))
+                            "mol", str(self.ctab).encode("ascii"))
                         self.canonical_smiles = pybelmol.write(
                             "can").split("\t")[0]
                         self.properties["cdxml"] = pybelmol.write("cdxml")
