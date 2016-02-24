@@ -323,7 +323,9 @@ class CBHCompoundBatch(TimeStampedModel):
                 self.standard_inchi.encode("ascii"))
 
     def generate_structure_and_dictionary(self, chirality="1"):
-
+        """
+        Adding the structure data to a compound batch object
+        """
 
         if self.id:
             print "not updating"
