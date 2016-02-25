@@ -193,7 +193,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         '''Clean up the structures that come in from Smiles or from XLS or SDFs'''
         # Get a copy of the mol data
         moldata = rd_mol
-        if orig_ctab is None:
+        if orig_ctab is None and moldata:
             for name in moldata.GetPropNames():
                 # delete the property names for the saved ctab
                 moldata.ClearProp(name)
