@@ -261,7 +261,6 @@ class CBHCompoundBatch(TimeStampedModel):
     std_ctab = models.TextField(null=True, blank=True, default=None)
     canonical_smiles = models.TextField(null=True, blank=True, default=None)
     original_smiles = models.TextField(null=True, blank=True, default=None)
-    editable_by = hstore.DictionaryField()
     uncurated_fields = hstore.DictionaryField()
     image = models.TextField(default="")
     bigimage = models.TextField(default="")
@@ -277,7 +276,6 @@ class CBHCompoundBatch(TimeStampedModel):
     warnings = hstore.DictionaryField()
     properties = hstore.DictionaryField()
     custom_fields = hstore.DictionaryField()
-    errors = hstore.DictionaryField()
     multiple_batch_id = models.IntegerField(default=0)
     #multiple_batch_id = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None, to_field="id")
     objects = CBHCompoundBatchManager()
@@ -296,8 +294,7 @@ class CBHCompoundBatch(TimeStampedModel):
         val = kwargs.pop("validate", True)
 
         # self.validate()
-        for key in self.errors:
-            raise ValidationError(key)
+
         if self.multiple_batch_id == 0:
             mb = CBHCompoundMultipleBatch.objects.create()
             self.multiple_batch_id = mb.id
