@@ -137,8 +137,10 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
     fit = False
     options = DrawingOptions() 
     if size >150:
-        options.dotsPerAngstrom = 15
-        options.coordScale = 2
+        options.coordScale = 3
+        options.bondLineWidth = 3.6
+        options.dblBondOffset = 0.75
+        fit = True
     
     image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size*2,size*2),
                                      kekulize=kek,highlightAtomLists=highlights, fitImage=fit,
