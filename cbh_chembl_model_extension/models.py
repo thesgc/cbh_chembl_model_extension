@@ -8,6 +8,7 @@ import random
 from chembl_business_model.models import MoleculeDictionary
 from chembl_business_model.models import CompoundStructures
 from rdkit import Chem
+from rdkit.Chem.Draw.MolDrawing import DrawingOptions
 from rdkit.Chem.rdmolfiles import MolToMolBlock
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -134,9 +135,15 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
     if mols[0].HasProp("_drawingBondsWedged"):
         kek=False
     fit = False
-    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size,size),
-                                    legends=[ legend for x in mols], kekulize=kek,highlightAtomLists=highlights, fitImage=fit
- )
+    options = DrawingOptions() 
+    if size >150:
+        options.dotsPerAngstrom = 15
+        options.coordScale = 2
+    
+    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size*2,size*2),
+                                     kekulize=kek,highlightAtomLists=highlights, fitImage=fit,
+                                    options=options
+    )
     image.save(f, format)
 
 def _mols2imageString(mols,size,legend, format, recalc=False, highlightMatch=None):
