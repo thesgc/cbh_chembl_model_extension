@@ -307,8 +307,13 @@ class CBHCompoundBatch(TimeStampedModel):
         if self.multiple_batch_id == 0:
             mb = CBHCompoundMultipleBatch.objects.create()
             self.multiple_batch_id = mb.id
-
         super(CBHCompoundBatch, self).save(*args, **kwargs)
+        if self.blinded_batch_id:
+            uox_id_lookup = ChemblIdLookup.objects.get_or_create(chembl_id=self.blinded_batch_id,
+                                                              entity_type="DOCUMENT",
+                                                              entity_id=self.id)
+
+        
 
     def validate(self, temp_props=True):
         self.standardise()
