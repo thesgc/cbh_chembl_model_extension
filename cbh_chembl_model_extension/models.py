@@ -136,14 +136,16 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
         kek=False
     fit = False
     options = DrawingOptions() 
+    subim = (size,size)
     if size >150:
+        subim = (size *2,size *2)
         options.coordScale = 3
         options.bondLineWidth = 3.6
         options.dblBondOffset = 0.435
         options.atomLabelFontSize = 60
         fit = True
-    
-    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=(size*2,size*2),
+        
+    image = Draw.MolsToGridImage(mols,molsPerRow=min(len(mols),4),subImgSize=subim,
                                      kekulize=kek,highlightAtomLists=highlights, fitImage=fit,
                                     options=options
     )
