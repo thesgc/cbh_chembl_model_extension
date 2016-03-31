@@ -34,6 +34,7 @@ from rdkit.Chem.AllChem import Compute2DCoords
 import base64
 import StringIO
 from rdkit.Chem import  SDMolSupplier, MolToMolBlock, MolFromSmarts, SDMolSupplier, AllChem, Draw, SanitizeMol, SanitizeFlags,   AssignAtomChiralTagsFromStructure
+from django_q.tasks import schedule
 
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
@@ -246,12 +247,16 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         # cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
         return cursor.fetchall()
 
-    def index_new_compounds(self):
-        cursor = connection.cursor()
-        cursor.execute(
-            "INSERT INTO compound_mols (molregno , ctab) SELECT c.molregno, mol_from_ctab(molfile::cstring) ctab FROM compound_structures c LEFT OUTER JOIN compound_mols ON c.molregno = compound_mols.molregno WHERE is_valid_ctab(molfile::cstring) AND compound_mols.molregno is null;")
-        return True
+    
 
+def index_new_compounds():
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO compound_mols (molregno , ctab) SELECT c.molregno, mol_from_ctab(molfile::cstring) ctab FROM compound_structures c LEFT OUTER JOIN compound_mols ON c.molregno = compound_mols.molregno WHERE is_valid_ctab(molfile::cstring) AND compound_mols.molregno is null;")
+    return True
+#Every minute, run the new compounds indexer
+schedule('cbh_chembl_model_extension.models.index_new_compounds',
+         schedule_type='I')
 
 class CBHCompoundMultipleBatch(TimeStampedModel):
 
