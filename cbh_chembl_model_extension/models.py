@@ -281,7 +281,7 @@ class CBHCompoundBatch(TimeStampedModel):
     created_by_id = models.IntegerField(null=True, blank=True, default=None)
     #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
     related_molregno = models.ForeignKey(
-        MoleculeDictionary, null=True, blank=True, default=None, to_field="molregno", )
+        MoleculeDictionary, related_name="batches", null=True, blank=True, default=None, to_field="molregno", )
     standard_inchi = models.TextField(null=True, blank=True, default=None)
     standard_inchi_key = models.CharField(
         max_length=50,  null=True, blank=True, default=None)
