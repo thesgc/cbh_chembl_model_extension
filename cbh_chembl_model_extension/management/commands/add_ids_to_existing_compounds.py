@@ -10,7 +10,6 @@ def add_ids_to_compounds():
         cs = CBHCompoundBatch.objects.filter(project=p).order_by("id")
         for c in cs:
             c.save()
-            print c.project_counter
 
 
 class Command(BaseCommand):
