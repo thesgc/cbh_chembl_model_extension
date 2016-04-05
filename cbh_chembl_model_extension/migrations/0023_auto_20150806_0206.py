@@ -21,4 +21,6 @@ class Migration(migrations.Migration):
             "alter table cbh_chembl_model_extension_projecttype rename to cbh_core_model_projecttype;"),
         migrations.RunSQL(
             "alter table cbh_chembl_model_extension_skinningconfig rename to cbh_core_model_skinningconfig;"),
+
+
     ]
