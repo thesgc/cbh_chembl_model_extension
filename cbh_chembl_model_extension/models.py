@@ -39,7 +39,6 @@ from django.db import IntegrityError
 
 
 
-
 hstore.DictionaryField.register_lookup(KeyValuesAny)
 
 hstore.DictionaryField.register_lookup(KeyValuesAll)
@@ -303,8 +302,12 @@ class CBHCompoundBatch(TimeStampedModel):
     project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
     blinded_batch_id = models.CharField(
         default="", null=True, blank=True, max_length=12)
-    batch_number = models.IntegerField(default=-1, null=True, blank=True,)
+    project_counter = models.IntegerField(default=-1, null=True, blank=True,)
 
+
+    def generate_project_counter(self):
+        Project = models.get_model("cbh_core_model", "Project")
+        return Project.objects.get_next_incremental_id_for_compound(self.project_id)
 
 
 
@@ -319,13 +322,14 @@ class CBHCompoundBatch(TimeStampedModel):
         if self.multiple_batch_id == 0:
             mb = CBHCompoundMultipleBatch.objects.create()
             self.multiple_batch_id = mb.id
+        if self.project_counter == -1:
+            self.project_counter = self.generate_project_counter()
         super(CBHCompoundBatch, self).save(*args, **kwargs)
         if self.blinded_batch_id:
             uox_id_lookup = ChemblIdLookup.objects.get_or_create(chembl_id=self.blinded_batch_id,
                                                               entity_type="DOCUMENT",
                                                               entity_id=self.id)
 
-        
 
     def validate(self, temp_props=True):
         self.standardise()
