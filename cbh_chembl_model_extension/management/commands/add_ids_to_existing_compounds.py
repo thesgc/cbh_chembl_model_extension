@@ -18,8 +18,7 @@ def queryset_iterator(queryset, chunksize=1000):
     pk = 0
     last_pk = queryset.order_by('-pk')[0].pk
     queryset = queryset.order_by('pk')
-    if queryset.count() == 0:
-        return queryset
+
     while pk < last_pk:
         for row in queryset.filter(pk__gt=pk)[:chunksize]:
             pk = row.pk
@@ -34,10 +33,10 @@ def add_ids_to_compounds():
     for p in list(Project.objects.all()):
         cs = CBHCompoundBatch.objects.filter(project=p).exclude(project_counter=-1).order_by("id")
 
-        
-        for obj in queryset_iterator(cs):
+        if cs.count() > 0:
+            for obj in queryset_iterator(cs):
 
-            obj.save()
+                obj.save()
             
             
         print "done %s" % p.name
