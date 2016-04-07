@@ -37,8 +37,7 @@ def add_ids_to_compounds():
             for obj in queryset_iterator(cs):
 
                 obj.save()
-            
-            
+
         print "done %s" % p.name
 
 
