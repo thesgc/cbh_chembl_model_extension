@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Model classes for the chemical batches and multiple batches that are used to hold datasets in ChemBio Hub
+
+"""
+
 from django.db import models, connection
 from django.contrib.auth.models import User
 
@@ -53,6 +58,7 @@ if "django_webauth" in settings.INSTALLED_APPS:
     from django.core.mail import send_mail
 
     def email_new_user(sender, instance, **kwargs):
+        """Function to email new users (oxford-specific)"""
         if kwargs["created"]:  # only for new users
             # need to email superusers to inform them a new user has logged in
             if instance.email:
@@ -76,12 +82,17 @@ if "django_webauth" in settings.INSTALLED_APPS:
                               instance.email, ], fail_silently=False, html_message=html_welcome_message)
 
     def find_superuser():
+        """Find the first superuser that you can possibly deprecated"""
         return User.objects.all().filter(is_active=True, is_superuser=True).exclude(email=None).exclude(email="")
 
     post_save.connect(email_new_user, sender=User)
 
 
 def generate_uox_id():
+    """Create an alphanumeric ID for a new compound or blinded compound or inventory item, 
+    ensuring that this has not been created before
+    There is a theoretical possibility of a race condition here but it is unlikely due to the number of possible IDs that can be generated
+    We have proposed a foolproof method to do this ID generation in thecbh_chembl_id_generator repository but have not had time to implement it"""
     two_letterg = shortuuid.ShortUUID()
     two_letterg.set_alphabet("ABCDEFGHJKLMNPQRSTUVWXYZ")
     two_letter = two_letterg.random(length=2)
@@ -110,6 +121,10 @@ $$$$'''
 #-----------------------------------------------------------------------------------------------------------------------
 
 def _parseMolData(data):
+    """Imports a molfile and verifies if all of the coordinates are set to zeros.
+    if they are set to zeros then we know there are no real coordinates in the molfile
+    In this case we allow RDKit to recaculate the positions of the atoms and come up with its own pictorial representation of the molecule
+    If not we use the molecule as drawn"""
     suppl = SDMolSupplier()
 
     suppl.SetData(str(data), sanitize=False)
@@ -131,6 +146,7 @@ def _parseMolData(data):
     return data
 
 def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
+    """Return an input stream for the molecule as drawn"""
     highlights = None
     if highlightMatch:
         pattern = MolFromSmarts(highlightMatch)
@@ -156,6 +172,7 @@ def _mols2imageStream(mols, f, format, size, legend, highlightMatch=None):
     image.save(f, format)
 
 def _mols2imageString(mols,size,legend, format, recalc=False, highlightMatch=None):
+    """Take an input stream for the molecule image and return as a string"""
     if not mols:
         return ''
  #   if recalc:
@@ -171,18 +188,21 @@ def _mols2imageString(mols,size,legend, format, recalc=False, highlightMatch=Non
     return imageData.getvalue()
 
 def _ctab2image(data,size,legend, recalc=True, highlightMatch=None):
+    """Generate a base64 encoded image string for the molecule"""
     data = _mols2imageString(_parseMolData(data),size,legend, 'PNG', recalc=recalc, highlightMatch=highlightMatch)
     
-    #if request.is_ajax:
     return base64.b64encode(data)
 
 
 def set_images(batch):
+    """Append images to a particular compound batch object"""
     batch.bigimage = _ctab2image(copy(batch.ctab), 400, False, recalc=None)
     batch.image = _ctab2image(copy(batch.ctab),80,False, recalc=None)
 
 class CBHCompoundBatchManager(hstore.HStoreManager):
+    """Manager methods for the generation of compound batch objects"""
     def get_image_for_assayreg(self, field, dpc, level):
+        """deprecated assayreg methods"""
         project = dpc.get("l0_permitted_projects")[0]
         if project[len(project) - 1] == "/":
             project = project[:-1]
@@ -244,6 +264,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
         return batch
 
     def get_all_keys(self, where=True, secondwhere=True):
+        """deprecated hstore method"""
         cursor = connection.cursor()
         cursor.execute(
             "SELECT key, count(*) FROM (SELECT (each(custom_fields)).key FROM cbh_chembl_model_extension_cbhcompoundbatch WHERE %s) AS stat WHERE %s GROUP BY key  ORDER BY count DESC, key" % (where, secondwhere))
@@ -253,6 +274,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
     
 
 def index_new_compounds():
+    """Select unindexed compounds from the compound structures table and insert them into the compound mols table using the is_valid_ctab from RDKit to check if the molecule is valid for RDKit"""
     cursor = connection.cursor()
     cursor.execute(
         "INSERT INTO compound_mols (molregno , ctab) SELECT c.molregno, mol_from_ctab(molfile::cstring) ctab FROM compound_structures c LEFT OUTER JOIN compound_mols ON c.molregno = compound_mols.molregno WHERE is_valid_ctab(molfile::cstring) AND compound_mols.molregno is null;")
@@ -262,59 +284,64 @@ def index_new_compounds():
 
 
 class CBHCompoundMultipleBatch(TimeStampedModel):
-
     '''Holds a list of batches'''
     created_by = models.CharField(
-        max_length=50, db_index=True, null=True, blank=True, default=None)
-    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
-    uploaded_data = PickledObjectField()
+        max_length=50, db_index=True, null=True, blank=True, default=None, help_text="User who created this multiple batch")
+    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None, help_text="Project that the multiple batch was created in")
+    uploaded_data = PickledObjectField(help_text="Now used to store the headers from the file used to generate the multiple batch, picke use perhaps can be improved or is deprecated")
     uploaded_file = models.ForeignKey(
-        FlowFile, null=True, blank=True, default=None)
-    saved = models.BooleanField(default=False)
+        FlowFile, null=True, blank=True, default=None, help_text="File that was uploaded to generate this multiple batch")
+    saved = models.BooleanField(default=False, help_text="Whether this multiple batch has been saved or not")
     #batches = models.ForeignKey(CBHCompoundBatch, null=True, default=None)
 
 
 class CBHCompoundBatch(TimeStampedModel):
-
     '''Holds the batch information for an uploaded compound before it is fully registered'''
-    ctab = models.TextField(null=True, blank=True, default=None)
-    std_ctab = models.TextField(null=True, blank=True, default=None)
-    canonical_smiles = models.TextField(null=True, blank=True, default=None)
-    original_smiles = models.TextField(null=True, blank=True, default=None)
-    uncurated_fields = hstore.DictionaryField()
-    image = models.TextField(default="")
-    bigimage = models.TextField(default="")
+    ctab = models.TextField(null=True, blank=True, default=None, help_text="The raw MDL molfile text (chemical table block - ctab) that was used to generate this compound batch")
+    std_ctab = models.TextField(null=True, blank=True, default=None, help_text="The standardised version of the above ctab/molfile text standardised using the Inchi software")
+    canonical_smiles = models.TextField(null=True, blank=True, default=None, help_text="Canonical SMILES pattern for the uploaded compound batch generated by the pybel library from openbabel")
+    original_smiles = models.TextField(null=True, blank=True, default=None, help_text="The SMILES pattern that was originally uploaded")
+    uncurated_fields = hstore.DictionaryField(help_text="The fields that were uploaded to the record but were not mapped on to anything, or extra information that the user wanted to include")
+    image = models.TextField(default="", help_text="A small base64 encoded image for the compound, for use in the front end")
+    bigimage = models.TextField(default="", help_text="A larger base64 encoded image for the compound, for use in the front end")
     created_by = models.CharField(
-        max_length=50, db_index=True, null=True, blank=True, default=None)
-    created_by_id = models.IntegerField(null=True, blank=True, default=None)
-    #related_molregno_id = models.IntegerField(db_index=True,  null=True, blank=True, default=None)
+        max_length=50, db_index=True, null=True, blank=True, default=None, help_text="The display name for the user who created this compound batch")
+    created_by_id = models.IntegerField(null=True, blank=True, default=None, help_text="The ID from the user who created this compound batch")
     related_molregno = models.ForeignKey(
-        MoleculeDictionary, related_name="batches", null=True, blank=True, default=None, to_field="molregno", )
-    standard_inchi = models.TextField(null=True, blank=True, default=None)
+        MoleculeDictionary, 
+        related_name="batches", 
+        null=True, blank=True, 
+        default=None, 
+        to_field="molregno", 
+        help_text="The foreign key relationship to the MoleculeDictionary record generated for this compound. May be null for compounds without a structure or inventory items"
+        )
+    standard_inchi = models.TextField(null=True, blank=True, default=None, help_text="The standard Inchi string for the molecule as generated by the standard Inchi library")
     standard_inchi_key = models.CharField(
-        max_length=50,  null=True, blank=True, default=None)
-    warnings = hstore.DictionaryField()
-    properties = hstore.DictionaryField()
-    custom_fields = hstore.DictionaryField()
-    multiple_batch_id = models.IntegerField(default=0)
-    #multiple_batch_id = models.ForeignKey(CBHCompoundMultipleBatch, null=True, blank=True, default=None, to_field="id")
+        max_length=50,  null=True, blank=True, default=None,  help_text="The standard Inchi key string for the molecule as generated by the standard Inchi library")
+    warnings = hstore.DictionaryField(help_text="Warnings that were raised when the molecule was uploaded")
+    properties = hstore.DictionaryField(help_text="System generated properties for the molecule and whether it is archived")
+    custom_fields = hstore.DictionaryField(help_text="The main field where data associated with the molecule is stored - data may be strings, numbers, lists or objects")
+    multiple_batch_id = models.IntegerField(default=0, help_text="The multiple batch id of this molecule and any others that were created at the same time")
     objects = CBHCompoundBatchManager()
-    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None)
+    project = models.ForeignKey("cbh_core_model.Project", null=True, blank=True, default=None, help_text="Foreign key to the projects table, used to determine permissions on the compound batch object")
     blinded_batch_id = models.CharField(
-        default="", null=True, blank=True, max_length=12)
-    project_counter = models.IntegerField(default=-1, null=True, blank=True,)
+        default="", null=True, blank=True, max_length=12, help_text="UUID assigned in cases where the compound batch is an inventory item or a molecule without a structure" )
+    project_counter = models.IntegerField(default=-1, null=True, blank=True, help_text="ID for this compound batch within the context of the project")
 
 
     def generate_project_counter(self):
+        """Assign an ID to the compound batch object within the given project"""
         Project = models.get_model("cbh_core_model", "Project")
         return Project.objects.get_next_incremental_id_for_compound(self.project_id)
 
 
 
     def get_uk(self,):
+        """Generate a unique key for the molecule, was used in finding duplicates on upload, may now be deprecated"""
         return "%s__%d__%s" % (self.standard_inchi_key, self.project_id, "MOL")
 
     def save(self, *args, **kwargs):
+        """Add additional generated attributes to the compound batch object as it is being saved"""
         val = kwargs.pop("validate", True)
 
         # self.validate()
@@ -332,9 +359,11 @@ class CBHCompoundBatch(TimeStampedModel):
 
 
     def validate(self, temp_props=True):
+        """Could now just use standardise, deprecated"""
         self.standardise()
 
     def standardise(self):
+        """Ensure Inchi etc was generated correctly"""
         if self.canonical_smiles:
             return
         if not self.std_ctab:
