@@ -1,3 +1,5 @@
+"""Checks Molfiles for Pan Assay Interference Compounds not currently used so possible deprecated"""
+
 from pybel import readstring, Smarts
 
 
