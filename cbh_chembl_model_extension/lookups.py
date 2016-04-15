@@ -1,3 +1,7 @@
+"""
+Deprecate old lookup functions from when we used the HStore engine to query the database
+"""
+
 from django.db.models.lookups import Contains
 from django_hstore.lookups import HStoreLookupMixin
 
