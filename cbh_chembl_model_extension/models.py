@@ -444,6 +444,7 @@ def generate_structure_and_dictionary(batch):
                         structure.save()
                         if structure.molecule_id:
                             generateCompoundPropertiesTask(structure)
+                        print moldict.compoundproperties.__dict__
                     batch.related_molregno = moldict
                 batch.save(validate=False)
 
