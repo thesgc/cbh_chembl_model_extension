@@ -6,7 +6,15 @@ Model classes for the chemical batches and multiple batches that are used to hol
 
 from django.db import models, connection
 from django.contrib.auth.models import User
+try:
+    # django >= 1.7
+    from django.apps import apps
+    get_model = apps.get_model
+except ImportError:
+    # django < 1.7
+    from django.db.models import get_model
 
+#---------------
 from django_hstore import hstore
 import json
 import random
@@ -199,7 +207,7 @@ def set_images(batch):
     batch.bigimage = _ctab2image(copy(batch.ctab), 400, False, recalc=None)
     batch.image = _ctab2image(copy(batch.ctab),80,False, recalc=None)
 
-class CBHCompoundBatchManager(hstore.HStoreManager):
+class CBHCompoundBatchManager(models.Manager):
     """Manager methods for the generation of compound batch objects"""
     def get_image_for_assayreg(self, field, dpc, level):
         """deprecated assayreg methods"""
@@ -263,13 +271,7 @@ class CBHCompoundBatchManager(hstore.HStoreManager):
             batch.project_id = project.id
         return batch
 
-    def get_all_keys(self, where=True, secondwhere=True):
-        """deprecated hstore method"""
-        cursor = connection.cursor()
-        cursor.execute(
-            "SELECT key, count(*) FROM (SELECT (each(custom_fields)).key FROM cbh_chembl_model_extension_cbhcompoundbatch WHERE %s) AS stat WHERE %s GROUP BY key  ORDER BY count DESC, key" % (where, secondwhere))
-        # cursor.execute("select distinct k from (select skeys(custom_fields) as k from cbh_chembl_model_extension_cbhcompoundbatch where %s) as dt" % where )
-        return cursor.fetchall()
+
 
     
 
@@ -309,7 +311,6 @@ class CBHCompoundBatch(TimeStampedModel):
     created_by_id = models.IntegerField(null=True, blank=True, default=None, help_text="The ID from the user who created this compound batch")
     related_molregno = models.ForeignKey(
         MoleculeDictionary, 
-        related_name="batches", 
         null=True, blank=True, 
         default=None, 
         to_field="molregno", 
@@ -331,7 +332,7 @@ class CBHCompoundBatch(TimeStampedModel):
 
     def generate_project_counter(self):
         """Assign an ID to the compound batch object within the given project"""
-        Project = models.get_model("cbh_core_model", "Project")
+        Project = get_model("cbh_core_model", "Project")
         return Project.objects.get_next_incremental_id_for_compound(self.project_id)
 
 

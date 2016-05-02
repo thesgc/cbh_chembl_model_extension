@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from django.core.management.base import BaseCommand, CommandError
+try:
+    # django >= 1.7
+    from django.apps import apps
+    get_model = apps.get_model
+except ImportError:
+    # django < 1.7
+    from django.db.models import get_model
 
 #-------------------------------------------------------------------------
 
@@ -177,10 +184,10 @@ from django.db import models
 
 
 def insert_bioactivities():
-    PinnedCustomField = models.get_model("cbh_core_model", "PinnedCustomField")
+    PinnedCustomField = get_model("cbh_core_model", "PinnedCustomField")
 
-    CustomFieldConfig = models.get_model("cbh_core_model", "CustomFieldConfig")
-    DataType = models.get_model("cbh_core_model", "DataType")
+    CustomFieldConfig = get_model("cbh_core_model", "CustomFieldConfig")
+    DataType = get_model("cbh_core_model", "DataType")
     u = get_user_model().objects.all()[0]
     dt = DataType.objects.get(name="Activity")
     for pointer in dataset:
